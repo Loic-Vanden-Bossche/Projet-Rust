@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use std::arch::x86_64::_mm_rcp_ps;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::from_utf8;
@@ -72,7 +71,7 @@ fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result
 }
 
 fn write_to_stream(mut stream: &TcpStream, message: String){
-	let mut size: u32;
+	let size: u32;
 	match u32::try_from(message.len()) {
 		Ok(val) => {
 			size = val;
@@ -91,7 +90,7 @@ fn write_to_stream(mut stream: &TcpStream, message: String){
 fn main() {
 	let stream = TcpStream::connect("127.0.0.1:7878");
 	let hello = b"\"Hello\"";
-	let mut size_w = 7_u32.to_be_bytes();
+	let size_w = 7_u32.to_be_bytes();
 	match stream {
 		Ok(mut stream) => {
 			println!("Connected");
