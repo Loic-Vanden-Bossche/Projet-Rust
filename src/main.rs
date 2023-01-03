@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::from_utf8;
@@ -10,6 +11,12 @@ struct version{
 	version: i32
 }
 
+impl version{
+	fn to_string(&self) ->String {
+		format!("{{\"version\": {}}}", self.version)
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Welcome {
 	Welcome: version
@@ -17,7 +24,7 @@ struct Welcome {
 
 impl Welcome {
 	fn to_string(&self) -> String {
-		format!("{{ \"Welcome\":{v}}}", self.i, s = self.s, float = self.f)
+		format!("{{ \"Welcome\":{}}}", self.Welcome.to_string())
 	}
 }
 
@@ -57,4 +64,8 @@ fn main() {
 			println!("Failed to connect");
 		}
 	}
+=======
+fn main() {
+    println!("Hello, world!");
+>>>>>>> b806211 (Initial commit)
 }
