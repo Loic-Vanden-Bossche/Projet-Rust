@@ -1,26 +1,60 @@
-use std::fmt::format;
-use std::io::{Cursor, Read, Write};
+use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+struct version{
+	version: i32
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Welcome {
+	Welcome: version
+}
+
+impl Welcome {
+	fn to_string(&self) -> String {
+		format!("{{ \"Welcome\":{v}}}", self.i, s = self.s, float = self.f)
+	}
+}
+
+fn read_from_stream(mut stream: TcpStream){
+	match stream.read_u32::<BigEndian>() {
+		Ok(size_r) => {
+			println!("Size: {}", &size_r);
+			let mut buf = vec![0u8; size_r as usize];
+			match stream.read_exact(& mut buf) {
+				Ok(_) => {
+					let text = from_utf8(&buf).unwrap();
+					println!("{}", text);
+				}
+				Err(e) => {
+					println!("Erreur à la lecture: {}", e);
+				}
+			}
+		}
+		Err(e) => {
+			println!("Failed to read data: {}", e);
+		}
+	}
+}
+
 fn main() {
-	let mut stream = TcpStream::connect("127.0.0.1:7878");
+	let stream = TcpStream::connect("127.0.0.1:7878");
 	let hello = b"\"Hello\"";
-	let mut size = 7_u32.to_be_bytes();
-	let mut buf: [u8; 255] = [0; 255];
-	if stream.is_ok() {
-		let mut s = stream.unwrap();
-		s.write(&size).expect("PANIKKK");
-		s.write(hello);
-		let mut handle = s.try_clone().unwrap().take(4);
-		handle.read(&mut buf);
-		let mut rdr = Cursor::new(buf);
-		let size = rdr.read_u32::<BigEndian>().unwrap();
-		println!("{}", size);
-		handle = s.take(size as u64);
-		handle.read(&mut buf);
-		buf[size as usize] = 0;
-		println!("{}", std::str::from_utf8(&buf).unwrap());
-		serde::de::Deserialize
+	let mut size_w = 7_u32.to_be_bytes();
+	match stream {
+		Ok(mut stream) => {
+			println!("Connected");
+			stream.write(&(size_w)).expect("PANIKKK");
+			stream.write(hello).expect("PANIKKK");
+			read_from_stream(stream)
+		}
+		Err(_) => {
+			println!("Failed to connect");
+		}
 	}
 }
