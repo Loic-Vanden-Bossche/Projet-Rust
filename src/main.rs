@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+mod types;
+
 use std::env;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -7,7 +9,7 @@ use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use serde::{Serialize, Deserialize};
-use crate::SubscribeError::InvalidName;
+use crate::types::subscribe::{Name, Subscribe, SubscribeError, SubscribeResult, SubscribeResultEnum};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Version {
@@ -20,29 +22,56 @@ struct Welcome {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Name{
-	name: String
+struct PublicPlayer{
+	name: String,
+	stream_id: String,
+	score: i32,
+	steps: u32,
+	is_active: bool,
+	total_used_time: f64
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Subscribe {
-	Subscribe: Name
+struct PublicLeaderBoard{
+	PublicLeaderBoard: Vec<PublicPlayer>
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-enum SubscribeError{
-	AlreadyRegistered, InvalidName
+#[derive(Serialize, Deserialize, Debug)]
+enum ChallengeEnum{
+	MD5HashCash(MD5HashCashInput)
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-enum SubscribeResultEnum{
-	Ok,
-	Err(SubscribeError)
+#[derive(Serialize, Deserialize, Debug)]
+struct MD5HashCashInput{
+	complexity: u32,
+	message: String
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct SubscribeResult{
-	SubscribeResult: SubscribeResultEnum
+#[derive(Serialize, Deserialize, Debug)]
+struct MD5HashCashOutput{
+	seed: u64,
+	hashcode: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Challenge{
+	Challenge: ChallengeEnum
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+enum ChallengeAnswer{
+	MD5HashCash(MD5HashCashOutput)
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ChallengeResult{
+	ChallengeResult: ChallengeResultData
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ChallengeResultData{
+	answer: ChallengeAnswer,
+	next_target: String
 }
 
 struct Error{
@@ -130,17 +159,17 @@ fn connect(ip: String, name: String) -> Result<TcpStream, Error>{
 		}
 		SubscribeResultEnum::Err(error) => {
 			return match error {
-				InvalidName => {
+				SubscribeError::InvalidName => {
 					println!("Invalid Name");
 					Err(Error { coucou: 5 })
 				}
-				_AlreadyRegistered => {
-					Err(Error { coucou: 6 })
+				SubscribeError::AlreadyRegistered => {
+					println!("Already registered");
+					Err(Error{coucou: 6})
 				}
 			}
 		}
 	}
-
 }
 
 fn main() {
@@ -161,12 +190,37 @@ fn main() {
 			ip = arg
 		}
 	}
-	match connect(ip, name) {
-		Ok(_) => {
+	let stream = match connect(ip, name) {
+		Ok(s) => {
 			println!("Connecté");
+			s
 		}
 		Err(err) => {
 			println!("Erreur lors de la connection {}", err.coucou);
+			return;
 		}
-	}
+	};
+	let plb: PublicLeaderBoard = match read_from_stream(&stream) {
+		Ok(val) => {
+			val
+		}
+		Err(_) => {
+			println!("nope");
+			return;
+		}
+	};
+	let test: Challenge = match read_from_stream(&stream) {
+		Ok(val) => {
+			val
+		}
+		Err(_) => {
+			println!("Dommage");
+			return;
+		}
+	};
+	let t = plb.PublicLeaderBoard.get(0).unwrap();
+	println!("{}", serde_json::to_string(&plb).unwrap());
+	println!("{}", serde_json::to_string(&test).unwrap());
+	let test = ChallengeResult{ChallengeResult: ChallengeResultData{next_target: t.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput{hashcode: "Coucou".to_string(), seed: 0})}};
+	write_to_stream(&stream, serde_json::to_string(&test).unwrap());
 }
