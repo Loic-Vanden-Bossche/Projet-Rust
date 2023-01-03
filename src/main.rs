@@ -87,7 +87,7 @@ fn write_to_stream(mut stream: &TcpStream, message: String){
 	stream.write(&mess).expect("OULA");
 }
 
-fn main() {
+fn connect() -> Result<TcpStream, Error>{
 	let stream = TcpStream::connect("127.0.0.1:7878");
 	let hello = b"\"Hello\"";
 	let size_w = 7_u32.to_be_bytes();
@@ -105,23 +105,39 @@ fn main() {
 						let res: Result<SubscribeResult, Error> = read_from_stream(&stream);
 						match res {
 							Ok(val) => {
-								println!("{}", serde_json::to_string(&val).unwrap())
+								println!("{}", serde_json::to_string(&val).unwrap());
+								Ok(stream)
 							}
 							Err(_) => {
-								println!("D'où")
+								println!("D'où");
+								Err(Error{coucou: 4})
 							}
 						}
 					}else{
 						println!("Unsupported version");
+						Err(Error{coucou: 4})
 					}
 				}
 				Err(_) => {
-					println!("MERDE")
+					println!("MERDE");
+					Err(Error{coucou: 4})
 				}
 			}
 		}
 		Err(_) => {
 			println!("Failed to connect");
+			Err(Error{coucou: 4})
+		}
+	}
+}
+
+fn main() {
+	match connect() {
+		Ok(_) => {
+			println!("Connecté");
+		}
+		Err(err) => {
+			println!("Erreur lors de la connection {}", err.coucou);
 		}
 	}
 }
