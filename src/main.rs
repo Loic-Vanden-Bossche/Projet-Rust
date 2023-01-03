@@ -64,8 +64,4 @@ fn main() {
 			println!("Failed to connect");
 		}
 	}
-=======
-fn main() {
-    println!("Hello, world!");
->>>>>>> b806211 (Initial commit)
 }
