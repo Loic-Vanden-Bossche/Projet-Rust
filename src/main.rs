@@ -11,9 +11,9 @@ struct version{
 }
 
 impl version{
-	fn to_string(&self) ->String {
-		format!("{{\"version\": {}}}", self.version)
-	}
+	/*fn to_string(&self) ->String {
+		format!("{{\"version\":{}}}", self.version)
+	}*/
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -22,9 +22,9 @@ struct Welcome {
 }
 
 impl Welcome {
-	fn to_string(&self) -> String {
-		format!("{{ \"Welcome\":{}}}", self.Welcome.to_string())
-	}
+	/*fn to_string(&self) -> String {
+		format!("{{\"Welcome\":{}}}", self.Welcome.to_string())
+	}*/
 }
 
 fn read_from_stream(mut stream: TcpStream){
@@ -36,6 +36,9 @@ fn read_from_stream(mut stream: TcpStream){
 				Ok(_) => {
 					let text = from_utf8(&buf).unwrap();
 					println!("{}", text);
+					let test2: Welcome = serde_json::from_str(text).unwrap();
+					println!("{}", serde_json::to_string(&test2).unwrap());
+
 				}
 				Err(e) => {
 					println!("Erreur à la lecture: {}", e);
