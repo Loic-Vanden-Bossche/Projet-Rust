@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::arch::x86_64::_mm_rcp_ps;
 use std::io::{Read, Write};
 use std::net::TcpStream;
