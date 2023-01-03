@@ -6,24 +6,24 @@ use byteorder::{BigEndian, ReadBytesExt};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct version{
+struct Version {
 	version: i32
 }
 
-impl version{
+impl Version {
 	/*fn to_string(&self) ->String {
-		format!("{{\"version\":{}}}", self.version)
+		format!("{{\"Version\":{}}}", self.Version)
 	}*/
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Welcome {
-	Welcome: version
+	Welcome: Version
 }
 
 impl Welcome {
 	/*fn to_string(&self) -> String {
-		format!("{{\"Welcome\":{}}}", self.Welcome.to_string())
+		format!("{{\"welcome\":{}}}", self.welcome.to_string())
 	}*/
 }
 
@@ -54,7 +54,7 @@ fn read_from_stream(mut stream: TcpStream){
 fn main() {
 	let stream = TcpStream::connect("127.0.0.1:7878");
 	let hello = b"\"Hello\"";
-	let mut size_w = 7_u32.to_be_bytes();
+	let size_w = 7_u32.to_be_bytes();
 	match stream {
 		Ok(mut stream) => {
 			println!("Connected");
