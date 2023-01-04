@@ -5,10 +5,12 @@ mod types;
 use std::env;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::ptr::null;
 use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use serde::{Serialize, Deserialize};
+use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, ChallengeValue, MD5HashCashOutput};
 use crate::types::subscribe::{Name, Subscribe, SubscribeError, SubscribeResult, SubscribeResultEnum};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,66 +38,41 @@ struct PublicLeaderBoard{
 	PublicLeaderBoard: Vec<PublicPlayer>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-enum ChallengeEnum{
-	MD5HashCash(MD5HashCashInput)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MD5HashCashInput{
-	complexity: u32,
-	message: String
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MD5HashCashOutput{
-	seed: u64,
-	hashcode: String
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Challenge{
-	Challenge: ChallengeEnum
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-enum ChallengeAnswer{
-	MD5HashCash(MD5HashCashOutput)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ChallengeResult{
-	ChallengeResult: ChallengeResultData
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ChallengeResultData{
-	answer: ChallengeAnswer,
-	next_target: String
+struct ReadError{
+	id: i32,
+	text: String
 }
 
 struct Error{
 	coucou: i32
 }
 
-fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result<T, Error>{
+fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result<T, ReadError>{
 	match stream.read_u32::<BigEndian>() {
 		Ok(size_r) => {
 			let mut buf = vec![0u8; size_r as usize];
 			match stream.read_exact(& mut buf) {
 				Ok(_) => {
 					let text = from_utf8(&buf).unwrap();
-					Ok(serde_json::from_str(text).unwrap())
+					println!("{}", text);
+					match serde_json::from_str(text) {
+						Ok(val) => {
+							Ok(val)
+						}
+						Err(_) => {
+							Err(ReadError{id: 1, text: text.to_string()})
+						}
+					}
 				}
 				Err(e) => {
 					println!("Erreur à la lecture: {}", e);
-					Err(Error{ coucou: 1})
+					Err(ReadError{id: 2, text: "".to_string()})
 				}
 			}
 		}
 		Err(e) => {
 			println!("Failed to read data: {}", e);
-			Err(Error{ coucou: 2})
+			Err(ReadError{id: 3, text: "".to_string()})
 		}
 	}
 }
@@ -129,7 +106,7 @@ fn connect(ip: String, name: String) -> Result<TcpStream, Error>{
 		}
 	};
 	write_to_stream(&stream, "\"Hello\"".to_string());
-	let welcome: Result<Welcome, Error> = read_from_stream(&stream);
+	let welcome: Result<Welcome, ReadError> = read_from_stream(&stream);
 	let sub_res = match welcome {
 		Ok(val) => {
 			if val.Welcome.version != 1 {
@@ -138,7 +115,7 @@ fn connect(ip: String, name: String) -> Result<TcpStream, Error>{
 			}
 			let sub = Subscribe{Subscribe: Name{ name }};
 			write_to_stream(&stream, serde_json::to_string(&sub).unwrap());
-			let res: Result<SubscribeResult, Error> = read_from_stream(&stream);
+			let res: Result<SubscribeResult, ReadError> = read_from_stream(&stream);
 			match res {
 				Ok(val) => {
 					val
@@ -200,27 +177,73 @@ fn main() {
 			return;
 		}
 	};
-	let plb: PublicLeaderBoard = match read_from_stream(&stream) {
-		Ok(val) => {
-			val
-		}
-		Err(_) => {
-			println!("nope");
-			return;
-		}
-	};
-	let test: Challenge = match read_from_stream(&stream) {
-		Ok(val) => {
-			val
-		}
-		Err(_) => {
-			println!("Dommage");
-			return;
-		}
-	};
-	let t = plb.PublicLeaderBoard.get(0).unwrap();
-	println!("{}", serde_json::to_string(&plb).unwrap());
-	println!("{}", serde_json::to_string(&test).unwrap());
-	let test = ChallengeResult{ChallengeResult: ChallengeResultData{next_target: t.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput{hashcode: "Coucou".to_string(), seed: 0})}};
-	write_to_stream(&stream, serde_json::to_string(&test).unwrap());
+	let end: EndOfGame;
+	loop {
+		let plb: PublicLeaderBoard = match read_from_stream(&stream) {
+			Ok(val) => {
+				val
+			}
+			Err(e) => {
+				if e.id == 1 {
+					end = serde_json::from_str(&*e.text).unwrap();
+					break;
+				}else{
+					println!("Error start");
+					return;
+				}
+			}
+		};
+		let test: Challenge = match read_from_stream(&stream) {
+			Ok(val) => {
+				val
+			}
+			Err(_) => {
+				println!("Dommage");
+				return;
+			}
+		};
+		let t = plb.PublicLeaderBoard.get(0).unwrap();
+		println!("{}", serde_json::to_string(&plb).unwrap());
+		println!("{}", serde_json::to_string(&test).unwrap());
+		let test = ChallengeResult { ChallengeResult: ChallengeResultData { next_target: t.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput { hashcode: "Coucou".to_string(), seed: 0 }) } };
+		write_to_stream(&stream, serde_json::to_string(&test).unwrap());
+		let sum: RoundSummary = match read_from_stream(&stream) {
+			Ok(val) => {
+				val
+			}
+			Err(_) => {
+				println!("Error");
+				return;
+			}
+		};
+		println!("{}", serde_json::to_string(&sum).unwrap());
+	}
+	println!("{}", serde_json::to_string(&end).unwrap());
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RoundSummary{
+	RoundSummary: RoundSummaryData
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RoundSummaryData{
+	challenge: String,
+	chain: Vec<ReportedChallengeResult>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ReportedChallengeResult{
+	name: String,
+	value: ChallengeValue
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct EndOfGame{
+	EndOfGame: EndOfGameData
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct EndOfGameData{
+	leader_board: Vec<PublicPlayer>
 }
