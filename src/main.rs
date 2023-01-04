@@ -1,98 +1,19 @@
 #![allow(non_snake_case)]
 
 mod types;
+mod function;
 
 use std::env;
-use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::ptr::null;
-use std::str::from_utf8;
-use byteorder::{BigEndian, ReadBytesExt};
 
-use serde::{Serialize, Deserialize};
-use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, ChallengeValue, MD5HashCashOutput};
+use crate::function::stream::{read_from_stream, write_to_stream};
+use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
+use crate::types::end::EndOfGame;
+use crate::types::error::{Error, ReadError};
+use crate::types::player::{PublicLeaderBoard};
+use crate::types::round::RoundSummary;
 use crate::types::subscribe::{Name, Subscribe, SubscribeError, SubscribeResult, SubscribeResultEnum};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Version {
-	version: i32
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Welcome {
-	Welcome: Version
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PublicPlayer{
-	name: String,
-	stream_id: String,
-	score: i32,
-	steps: u32,
-	is_active: bool,
-	total_used_time: f64
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PublicLeaderBoard{
-	PublicLeaderBoard: Vec<PublicPlayer>
-}
-
-struct ReadError{
-	id: i32,
-	text: String
-}
-
-struct Error{
-	coucou: i32
-}
-
-fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result<T, ReadError>{
-	match stream.read_u32::<BigEndian>() {
-		Ok(size_r) => {
-			let mut buf = vec![0u8; size_r as usize];
-			match stream.read_exact(& mut buf) {
-				Ok(_) => {
-					let text = from_utf8(&buf).unwrap();
-					println!("{}", text);
-					match serde_json::from_str(text) {
-						Ok(val) => {
-							Ok(val)
-						}
-						Err(_) => {
-							Err(ReadError{id: 1, text: text.to_string()})
-						}
-					}
-				}
-				Err(e) => {
-					println!("Erreur à la lecture: {}", e);
-					Err(ReadError{id: 2, text: "".to_string()})
-				}
-			}
-		}
-		Err(e) => {
-			println!("Failed to read data: {}", e);
-			Err(ReadError{id: 3, text: "".to_string()})
-		}
-	}
-}
-
-fn write_to_stream(mut stream: &TcpStream, message: String){
-	let size: u32;
-	match u32::try_from(message.len()) {
-		Ok(val) => {
-			size = val;
-		}
-		Err(_) => {
-			println!("Erreur message trop long");
-			return;
-		}
-	}
-	let size_b = size.to_be_bytes();
-	stream.write(&size_b).expect("AHHHH");
-	let mess = message.into_bytes();
-	stream.write(&mess).expect("OULA");
-}
+use crate::types::welcome::Welcome;
 
 fn connect(ip: String, name: String) -> Result<TcpStream, Error>{
 	let res_stream = TcpStream::connect(ip);
@@ -219,31 +140,4 @@ fn main() {
 		println!("{}", serde_json::to_string(&sum).unwrap());
 	}
 	println!("{}", serde_json::to_string(&end).unwrap());
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RoundSummary{
-	RoundSummary: RoundSummaryData
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RoundSummaryData{
-	challenge: String,
-	chain: Vec<ReportedChallengeResult>
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ReportedChallengeResult{
-	name: String,
-	value: ChallengeValue
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct EndOfGame{
-	EndOfGame: EndOfGameData
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct EndOfGameData{
-	leader_board: Vec<PublicPlayer>
 }

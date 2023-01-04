@@ -45,3 +45,9 @@ pub enum ChallengeValue{
     BadResult {used_time: f64, next_target: String},
     Ok {used_time: f64, next_target: String}
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ReportedChallengeResult{
+    name: String,
+    value: ChallengeValue
+}
