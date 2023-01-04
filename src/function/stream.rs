@@ -12,7 +12,7 @@ pub fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Re
             match stream.read_exact(& mut buf) {
                 Ok(_) => {
                     let text = from_utf8(&buf).unwrap();
-                    println!("{}", text);
+                    // println!("{}", text);
                     match serde_json::from_str(text) {
                         Ok(val) => {
                             Ok(val)

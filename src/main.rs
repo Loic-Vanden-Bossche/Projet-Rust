@@ -3,9 +3,8 @@
 mod types;
 mod function;
 
-use std::env;
+use crate::function::args::parse_args;
 use crate::function::connect::connect;
-
 use crate::function::stream::{read_from_stream, write_to_stream};
 use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
 use crate::types::end::EndOfGame;
@@ -13,23 +12,7 @@ use crate::types::player::{PublicLeaderBoard};
 use crate::types::round::RoundSummary;
 
 fn main() {
-	let args: Vec<String> = env::args().collect();
-	let mut name = "macaron".to_string();
-	let mut ip = "127.0.0.1:7878".to_string();
-	let mut next = 0;
-	for arg in args {
-		if arg == "--name" {
-			next = 1;
-		}
-		if arg == "--ip" {
-			next = 2;
-		}
-		if next == 1 {
-			name = arg;
-		}else if next == 2 {
-			ip = arg
-		}
-	}
+	let (name, ip) = parse_args();
 	let stream = match connect(ip, name) {
 		Ok(s) => {
 			println!("Connecté");

@@ -1,8 +1,7 @@
 use std::net::TcpStream;
-use serde::de::value::BoolDeserializer;
 use serde_json::to_string;
 use crate::function::stream::{read_from_stream, write_to_stream};
-use crate::types::error::{Error, ReadError};
+use crate::types::error::{Error};
 use crate::types::subscribe::{Name, Subscribe, SubscribeError, SubscribeResult, SubscribeResultEnum};
 use crate::types::welcome::Welcome;
 
@@ -23,7 +22,7 @@ fn hello(stream: &TcpStream) -> bool {
     return match read_from_stream(&stream){
         Ok(val) => {
             let val: Welcome = val;
-            if val.version == 1 {
+            if val.Welcome.version == 1 {
                 true
             }else{
                 println!("Unsupported version");
