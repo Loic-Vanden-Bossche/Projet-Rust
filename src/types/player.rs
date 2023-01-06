@@ -3,11 +3,11 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PublicPlayer{
     pub name: String,
-    stream_id: String,
-    score: i32,
-    steps: u32,
-    is_active: bool,
-    total_used_time: f64
+    pub stream_id: String,
+    pub score: i32,
+    pub steps: u32,
+    pub is_active: bool,
+    pub total_used_time: f64
 }
 
 #[derive(Serialize, Deserialize, Debug)]
