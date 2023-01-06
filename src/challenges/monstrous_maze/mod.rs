@@ -1,4 +1,4 @@
 pub mod types;
-mod challenge;
+pub mod challenge;
 
-pub use challenge::monstrous_maze as challenge;
+// pub use challenge::monstrous_maze;
