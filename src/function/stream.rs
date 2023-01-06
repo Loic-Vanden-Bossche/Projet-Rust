@@ -3,6 +3,7 @@ use std::net::TcpStream;
 use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 use serde::Deserialize;
+use serde_json::to_string;
 use crate::types::error::ReadError;
 
 pub fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result<T, ReadError>{
@@ -11,7 +12,14 @@ pub fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Re
             let mut buf = vec![0u8; size_r as usize];
             match stream.read_exact(& mut buf) {
                 Ok(_) => {
-                    let text = from_utf8(&buf).expect("Not text");
+                    let text = match from_utf8(&buf) {
+                        Ok(val) => {
+                            val
+                        }
+                        Err(_) => {
+                            return Err(ReadError{id: 4, text: "".to_string()})
+                        }
+                    };
                     match serde_json::from_str(text) {
                         Ok(val) => {
                             Ok(val)
@@ -46,7 +54,20 @@ pub fn write_to_stream(mut stream: &TcpStream, message: String){
         }
     }
     let size_b = size.to_be_bytes();
-    stream.write(&size_b).expect("AHHHH");
-    let mess = message.into_bytes();
-    stream.write(&mess).expect("OULA");
+    match stream.write(&size_b) {
+        Ok(_) => {
+            let mess = message.into_bytes();
+            match stream.write(&mess) {
+                Ok(size) => {
+                    println!("{size} bytes written")
+                }
+                Err(_) => {
+                    println!("Error while writing message")
+                }
+            }
+        }
+        Err(_) => {
+            println!("Error in writing message size");
+        }
+    }
 }

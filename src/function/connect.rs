@@ -37,8 +37,14 @@ fn hello(stream: &TcpStream) -> bool {
 }
 
 fn subscribe(stream: &TcpStream, name: String) -> Result<i32, Error> {
-    let sub = Subscribe{Subscribe: Name{ name }};
-    write_to_stream(&stream, to_string(&sub).expect("Impossible"));
+    let sub = match to_string(&Subscribe{Subscribe: Name{ name }}) {
+        Ok(val) => {
+            val
+        }
+        Err(_) => {
+            return Err(Error{coucou: 6})
+        }
+    };
     let sub_res: SubscribeResult = match read_from_stream(&stream) {
         Ok(val) => {
             val

@@ -59,14 +59,21 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary
     return None
 }
 
-pub fn get_player(plb: &Vec<PublicPlayer>) -> &PublicPlayer{
-    let mut top1: &PublicPlayer = &plb.get(0).expect("No player");
+pub fn get_player(plb: &Vec<PublicPlayer>) -> Option<&PublicPlayer> {
+    let mut top1: &PublicPlayer = match &plb.get(0) {
+        Some(val) => {
+            val
+        }
+        None => {
+            return None
+        }
+    };
     for p in plb {
         if top1.score < p.score {
             top1 = p;
         }
     }
-    top1
+    Some(top1)
 }
 
 pub fn end_of_round(stream: &TcpStream) -> Option<RoundSummary>{
