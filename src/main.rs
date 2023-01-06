@@ -4,6 +4,7 @@ extern crate core;
 
 mod types;
 mod function;
+mod challenges;
 
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
