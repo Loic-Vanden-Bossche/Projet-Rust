@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+extern crate core;
+
 mod types;
 mod function;
 
@@ -58,7 +60,6 @@ fn main() {
 			}
 		};
 	}
-	println!("{}", serde_json::to_string(&end).unwrap());
 	let top1 = get_player(&end.EndOfGame.leader_board);
 	println!("Player {} win with {} point! GG", top1.name, top1.score);
 }

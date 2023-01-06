@@ -14,7 +14,14 @@ pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartEr
         }
         Err(e) => {
             if e.id == 1 {
-                Err(RoundStartError{reason: EndOfGameError(serde_json::from_str(&*e.text).unwrap())})
+                match serde_json::from_str(&*e.text) {
+                    Ok(val) => {
+                        Err(RoundStartError{reason: EndOfGameError(val)})
+                    }
+                    Err(_) => {
+                        Err(RoundStartError{reason: ReadError})
+                    }
+                }
             }else{
                 println!("Error start");
                 Err(RoundStartError{reason: ReadError})
@@ -30,7 +37,14 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary
         }
         Err(e) => {
             if e.id == 1 {
-                return Some(serde_json::from_str(&e.text).unwrap())
+                return match serde_json::from_str(&e.text) {
+                    Ok(val) => {
+                        Some(val)
+                    }
+                    Err(_) => {
+                        None
+                    }
+                }
             }
             println!("Dommage");
             return None;
@@ -46,7 +60,7 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary
 }
 
 pub fn get_player(plb: &Vec<PublicPlayer>) -> &PublicPlayer{
-    let mut top1: &PublicPlayer = &plb.get(0).unwrap();
+    let mut top1: &PublicPlayer = &plb.get(0).expect("No player");
     for p in plb {
         if top1.score < p.score {
             top1 = p;
