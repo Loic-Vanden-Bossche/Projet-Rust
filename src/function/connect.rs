@@ -37,9 +37,9 @@ fn hello(stream: &TcpStream) -> bool {
 }
 
 fn subscribe(stream: &TcpStream, name: String) -> Result<i32, Error> {
-    let sub = match to_string(&Subscribe{Subscribe: Name{ name }}) {
+    match to_string(&Subscribe{Subscribe: Name{ name }}) {
         Ok(val) => {
-            val
+            write_to_stream(stream, val);
         }
         Err(_) => {
             return Err(Error{coucou: 6})

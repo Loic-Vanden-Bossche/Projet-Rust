@@ -42,7 +42,12 @@ fn main() {
 				break;
 			}
 		};
-		let top1 = get_player(&plb.PublicLeaderBoard);
+		let top1 = match get_player(&plb.PublicLeaderBoard) {
+			Some(val) => { val }
+			None => {
+				return;
+			}
+		};
 		let _sum = match challenge(&stream, &top1) {
 			Some(val) => {
 				val
@@ -60,6 +65,12 @@ fn main() {
 			}
 		};
 	}
-	let top1 = get_player(&end.EndOfGame.leader_board);
+	let top1 = match get_player(&end.EndOfGame.leader_board) {
+		Some(val) => { val }
+		None => {
+			println!("No player on leaderboard");
+			return;
+		}
+	};
 	println!("Player {} win with {} point! GG", top1.name, top1.score);
 }

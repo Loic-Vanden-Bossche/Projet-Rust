@@ -3,7 +3,6 @@ use std::net::TcpStream;
 use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 use serde::Deserialize;
-use serde_json::to_string;
 use crate::types::error::ReadError;
 
 pub fn read_from_stream<T:for<'a> Deserialize<'a>>(mut stream: &TcpStream) -> Result<T, ReadError>{
