@@ -35,7 +35,7 @@ fn hello(stream: &TcpStream) -> bool {
             }
         }
         Err(_) => {
-            println!("Error on Welcome");
+            error!("Error on Welcome");
             false
         }
     }
@@ -92,7 +92,7 @@ pub fn connect(ip: String, name: String) -> Option<TcpStream>{
             s
         }
         None => {
-            println!("Failed to connect");
+            error!("Failed to connect");
             return None;
         }
     };

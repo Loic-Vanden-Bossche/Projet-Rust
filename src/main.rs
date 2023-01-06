@@ -10,9 +10,9 @@ use log::{info, error, LevelFilter};
 use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
-use crate::function::round::{challenge, end_of_round, get_player, round, start_round};
+use crate::function::round::{get_player, round};
 use crate::types::end::EndOfGame;
-use crate::types::error::{RoundErrorReason, RoundStartErrorEnum};
+use crate::types::error::{RoundErrorReason};
 
 fn main() {
 	simplelog::TermLogger::init(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always).unwrap();

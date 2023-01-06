@@ -32,7 +32,7 @@ pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartEr
                     }
                 }
             }else{
-                println!("Error on round start");
+                error!("Error on round start");
                 Err(RoundStartError{reason: ReadError})
             }
         }
