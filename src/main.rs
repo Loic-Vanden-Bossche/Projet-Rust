@@ -6,12 +6,8 @@ mod function;
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
 use crate::function::round::{challenge, end_of_round, get_player, start_round};
-use crate::function::stream::{read_from_stream, write_to_stream};
-use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
 use crate::types::end::EndOfGame;
-use crate::types::error::{RoundStartError, RoundStartErrorEnum};
-use crate::types::player::{PublicLeaderBoard, PublicPlayer};
-use crate::types::round::RoundSummary;
+use crate::types::error::{RoundStartErrorEnum};
 
 fn main() {
 	let (name, ip) = parse_args();
@@ -45,7 +41,7 @@ fn main() {
 			}
 		};
 		let top1 = get_player(&plb.PublicLeaderBoard);
-		let sum = match challenge(&stream, &top1) {
+		let _sum = match challenge(&stream, &top1) {
 			Some(val) => {
 				val
 			}
