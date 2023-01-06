@@ -1,6 +1,9 @@
-pub struct Output {
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MD5HashCashOutput {
     // Seed used to solve the challenge
-    seed: u64,
+    pub(crate) seed: u64,
     // hashcode found using seed + message
-    hashcode: String,
+    pub(crate) hashcode: String,
 }

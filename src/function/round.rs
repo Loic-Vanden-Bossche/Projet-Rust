@@ -1,9 +1,9 @@
 use std::net::TcpStream;
 use serde_json::to_string;
+use crate::challenges::hash_cash::hash_cash;
 use crate::challenges::monstrous_maze::challenge::monstrous_maze;
-use crate::challenges::monstrous_maze::types::output::MonstrousMazeOutput;
 use crate::function::stream::{read_from_stream, write_to_stream};
-use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeEnum, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
+use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeEnum, ChallengeResult, ChallengeResultData};
 use crate::types::error::{RoundStartError};
 use crate::types::error::RoundStartErrorEnum::{EndOfGame as EndOfGameError, ReadError};
 use crate::types::player::{PublicLeaderBoard, PublicPlayer};
@@ -53,8 +53,8 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary
         }
     };
     match challenge.Challenge {
-        ChallengeEnum::MD5HashCash(_input) => {
-            let test = ChallengeResult { ChallengeResult: ChallengeResultData { next_target: next.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput { hashcode: "Coucou".to_string(), seed: 0 }) } };
+        ChallengeEnum::MD5HashCash(input) => {
+            let test = ChallengeResult { ChallengeResult: ChallengeResultData { next_target: next.name.clone(), answer: ChallengeAnswer::MD5HashCash(hash_cash(input)) } };
             write_to_stream(&stream, to_string(&test).unwrap());
         }
         ChallengeEnum::MonstrousMaze(input) => {

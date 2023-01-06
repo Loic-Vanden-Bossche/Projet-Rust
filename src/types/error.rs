@@ -13,7 +13,3 @@ pub enum RoundStartErrorEnum{
 pub struct RoundStartError{
     pub reason: RoundStartErrorEnum
 }
-
-pub struct Error{
-    pub coucou: i32
-}
