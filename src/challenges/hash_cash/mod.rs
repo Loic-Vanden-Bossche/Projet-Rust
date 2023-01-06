@@ -1,2 +1,4 @@
 pub mod types;
-pub mod challenge;
+mod challenge;
+
+pub use challenge::hash_cash as challenge;

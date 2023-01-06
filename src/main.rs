@@ -1,9 +1,14 @@
+mod challenges;
+
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::from_utf8;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use serde::{Serialize, Deserialize};
+
+use crate::challenges::hash_cash::challenge;
+use crate::challenges::hash_cash::types::{input::Input};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct version{
@@ -50,11 +55,6 @@ fn read_from_stream(mut stream: TcpStream){
 		}
 	}
 }
-
-mod challenges;
-use crate::challenges::hash_cash::challenge::hash_cash;
-use crate::challenges::hash_cash::types::{input::Input};
-
 
 fn main() {
 	// let (name, ip) = parse_args();
@@ -106,5 +106,5 @@ fn main() {
 	// }
 	// println!("{}", serde_json::to_string(&end).unwrap());
 
-	hash_cash(Input{complexity: 3, message: "blabla".to_string()})
+	challenge(Input{complexity: 3, message: "blabla".to_string()})
 }
