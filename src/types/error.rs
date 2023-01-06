@@ -13,3 +13,14 @@ pub enum RoundStartErrorEnum{
 pub struct RoundStartError{
     pub reason: RoundStartErrorEnum
 }
+
+pub struct RoundError {
+    pub reason: RoundErrorReason
+}
+
+pub enum RoundErrorReason {
+    EndOfGame(EndOfGame),
+    StartError,
+    LeaderBoardError,
+    EndError
+}
