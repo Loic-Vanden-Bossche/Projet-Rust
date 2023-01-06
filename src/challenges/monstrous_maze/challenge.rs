@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
-use crate::challenges::monstrous_maze::types::input::Input;
+use crate::challenges::monstrous_maze::types::input::MonstrousMazeInput;
 use crate::challenges::monstrous_maze::types::map::Map;
-use crate::challenges::monstrous_maze::types::output::Output;
+use crate::challenges::monstrous_maze::types::output::MonstrousMazeOutput;
 
-fn parse_input(input: Input) -> Map {
+fn parse_input(input: MonstrousMazeInput) -> Map {
     let mut maze = Vec::new();
     let mut player = (0, 0);
     let mut exit = (0, 0);
@@ -82,15 +82,15 @@ fn find_path(map: &Map) -> Option<String> {
     None
 }
 
-pub fn monstrous_maze(input: Input) -> Output {
+pub fn monstrous_maze(input: MonstrousMazeInput) -> MonstrousMazeOutput {
     let map = parse_input(input);
 
     if let Some(path) = find_path(&map) {
-        Output {
+        MonstrousMazeOutput {
             path,
         }
     } else {
-        Output {
+        MonstrousMazeOutput {
             path: "No path found".to_string(),
         }
     }

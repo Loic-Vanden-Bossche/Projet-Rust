@@ -1,8 +1,11 @@
 use serde::{Serialize, Deserialize};
+use crate::challenges::monstrous_maze::types::input::MonstrousMazeInput;
+use crate::challenges::monstrous_maze::types::output::MonstrousMazeOutput;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ChallengeEnum{
-    MD5HashCash(MD5HashCashInput)
+    MD5HashCash(MD5HashCashInput),
+    MonstrousMaze(MonstrousMazeInput)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,7 +27,8 @@ pub struct Challenge{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ChallengeAnswer{
-    MD5HashCash(MD5HashCashOutput)
+    MD5HashCash(MD5HashCashOutput),
+    MonstrousMaze(MonstrousMazeOutput)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
