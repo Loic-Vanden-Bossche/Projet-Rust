@@ -86,6 +86,7 @@ fn subscribe(stream: &TcpStream, name: String) -> bool {
 }
 
 pub fn connect(ip: String, name: String) -> Option<TcpStream>{
+    debug!("Trying to connect to {ip} with name {name}");
     let stream = match get_stream(ip) {
         Some(s) => {
             debug!("Socket created");

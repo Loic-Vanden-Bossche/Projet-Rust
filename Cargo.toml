@@ -12,3 +12,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0" }
 log = { version = "0.4.17" }
 simplelog = { version = "0.12.0", features = ["paris"] }
+clap = { version = "4.0.32", features = ["derive"] }

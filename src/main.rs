@@ -6,18 +6,31 @@ mod types;
 mod function;
 mod challenges;
 
-use log::{info, error, LevelFilter};
-use simplelog::{ColorChoice, Config, TerminalMode};
+use std::ops::Add;
+use log::{info, error};
+use simplelog::{ColorChoice, Config, debug, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
 use crate::function::round::{get_player, round};
 use crate::types::end::EndOfGame;
 use crate::types::error::{RoundErrorReason};
 
+fn make_url(host: Option<String>, port: u32) -> String{
+	match host {
+		Some(host) => { host }
+		None => { "localhost".to_string() }
+	}.add(":").add(port.to_string().as_str())
+}
+
 fn main() {
-	simplelog::TermLogger::init(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always).unwrap();
-	let (name, ip) = parse_args();
-	let stream = match connect(ip, name) {
+	let (name, port, debug, host) = parse_args();
+	match simplelog::TermLogger::init(debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
+		Ok(_) => { debug!("Logger loaded") }
+		Err(err) => {
+			println!("Error on loading logger: {err}")
+		}
+	}
+	let stream = match connect(make_url(host, port), name) {
 		Some(s) => {
 			info!("Connected");
 			s
