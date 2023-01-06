@@ -1,1 +1,1 @@
-pub mod hashCash;
+pub mod hash_cash;
