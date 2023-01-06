@@ -3,6 +3,7 @@ mod challenges;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::from_utf8;
+use std::time::Instant;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use serde::{Serialize, Deserialize};
@@ -149,5 +150,10 @@ fn main() {
 #########################################################################################################################################################################################################
 ";
 
-	challenge(Input{endurance: 100, grid: grid.to_string()})
+	let i = Instant::now();
+	let res = challenge(Input{endurance: 100, grid: grid.to_string()});
+
+	println!("{:?}", i.elapsed());
+	println!("Result: {:?}", res);
+
 }
