@@ -6,6 +6,7 @@ use crate::types::end::EndOfGame;
 use crate::types::error::{RoundStartError, RoundStartErrorEnum};
 use crate::types::error::RoundStartErrorEnum::{EndOfGame as EndOfGameError, ReadError};
 use crate::types::player::{PublicLeaderBoard, PublicPlayer};
+use crate::types::round::RoundSummary;
 
 pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartError>{
     match read_from_stream(&stream) {
@@ -28,7 +29,10 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer){
         Ok(val) => {
             val
         }
-        Err(_) => {
+        Err(e) => {
+            if e.id == 1 {
+                println!("{}", e.text)
+            }
             println!("Dommage");
             return;
         }
@@ -37,6 +41,28 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer){
         ChallengeEnum::MD5HashCash(input) => {
             let test = ChallengeResult { ChallengeResult: ChallengeResultData { next_target: next.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput { hashcode: "Coucou".to_string(), seed: 0 }) } };
             write_to_stream(&stream, to_string(&test).unwrap());
+        }
+    }
+}
+
+pub fn get_player(plb: &PublicLeaderBoard) -> &PublicPlayer{
+    let mut top1: &PublicPlayer = &plb.PublicLeaderBoard.get(0).unwrap();
+    for p in &plb.PublicLeaderBoard {
+        if top1.score > p.score {
+            top1 = p;
+        }
+    }
+    &top1
+}
+
+pub fn end_of_round(stream: &TcpStream) -> Option<RoundSummary>{
+    match read_from_stream(stream) {
+        Ok(val) => {
+            Some(val)
+        }
+        Err(_) => {
+            println!("Error");
+            None
         }
     }
 }

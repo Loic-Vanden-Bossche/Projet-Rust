@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PublicPlayer{
     pub name: String,
     pub stream_id: String,
@@ -10,7 +10,7 @@ pub struct PublicPlayer{
     pub total_used_time: f64
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PublicLeaderBoard{
     pub PublicLeaderBoard: Vec<PublicPlayer>
 }

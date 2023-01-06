@@ -3,10 +3,10 @@ use crate::types::player::PublicPlayer;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EndOfGame{
-    EndOfGame: EndOfGameData
+    pub EndOfGame: EndOfGameData
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct EndOfGameData{
-    leader_board: Vec<PublicPlayer>
+pub struct EndOfGameData{
+    pub leader_board: Vec<PublicPlayer>
 }

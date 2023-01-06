@@ -5,7 +5,7 @@ mod function;
 
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
-use crate::function::round::{challenge, start_round};
+use crate::function::round::{challenge, end_of_round, get_player, start_round};
 use crate::function::stream::{read_from_stream, write_to_stream};
 use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
 use crate::types::end::EndOfGame;
@@ -38,28 +38,24 @@ fn main() {
 					}
 					RoundStartErrorEnum::ReadError => {
 						println!("Error on start round");
+						return;
 					}
 				}
-				return;
+				break;
 			}
 		};
-		let mut top1: &PublicPlayer = plb.PublicLeaderBoard.get(0).unwrap().clone();
-		for p in plb.PublicLeaderBoard {
-			if top1.score > p.score {
-				top1 = &p;
-			}
-		}
+		let top1 = get_player(&plb);
 		challenge(&stream, &top1);
-		let sum: RoundSummary = match read_from_stream(&stream) {
-			Ok(val) => {
+		match end_of_round(&stream) {
+			Some(val) => {
 				val
 			}
-			Err(_) => {
+			None => {
 				println!("Error");
 				return;
 			}
 		};
-		println!("{}", serde_json::to_string(&sum).unwrap());
 	}
-	println!("{}", serde_json::to_string(&end).unwrap());
+	let top1 = end.EndOfGame.leader_board.get(0).unwrap();
+	println!("Player {} win with {} point! GG", top1.name, top1.score);
 }
