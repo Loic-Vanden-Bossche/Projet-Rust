@@ -44,18 +44,25 @@ fn main() {
 				break;
 			}
 		};
-		let top1 = get_player(&plb);
-		challenge(&stream, &top1);
-		match end_of_round(&stream) {
+		let top1 = get_player(&plb.PublicLeaderBoard);
+		let sum = match challenge(&stream, &top1) {
 			Some(val) => {
 				val
 			}
 			None => {
-				println!("Error");
-				return;
+				match end_of_round(&stream) {
+					Some(val) => {
+						val
+					}
+					None => {
+						println!("Error");
+						return;
+					}
+				}
 			}
 		};
 	}
-	let top1 = end.EndOfGame.leader_board.get(0).unwrap();
+	println!("{}", serde_json::to_string(&end).unwrap());
+	let top1 = get_player(&end.EndOfGame.leader_board);
 	println!("Player {} win with {} point! GG", top1.name, top1.score);
 }

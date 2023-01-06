@@ -24,17 +24,17 @@ pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartEr
     }
 }
 
-pub fn challenge(stream: &TcpStream, next: &PublicPlayer){
+pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary>{
     let challenge: Challenge = match read_from_stream(&stream) {
         Ok(val) => {
             val
         }
         Err(e) => {
             if e.id == 1 {
-                println!("{}", e.text)
+                return Some(serde_json::from_str(&e.text).unwrap())
             }
             println!("Dommage");
-            return;
+            return None;
         }
     };
     match challenge.Challenge {
@@ -43,16 +43,17 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer){
             write_to_stream(&stream, to_string(&test).unwrap());
         }
     }
+    return None
 }
 
-pub fn get_player(plb: &PublicLeaderBoard) -> &PublicPlayer{
-    let mut top1: &PublicPlayer = &plb.PublicLeaderBoard.get(0).unwrap();
-    for p in &plb.PublicLeaderBoard {
-        if top1.score > p.score {
+pub fn get_player(plb: &Vec<PublicPlayer>) -> &PublicPlayer{
+    let mut top1: &PublicPlayer = &plb.get(0).unwrap();
+    for p in plb {
+        if top1.score < p.score {
             top1 = p;
         }
     }
-    &top1
+    top1
 }
 
 pub fn end_of_round(stream: &TcpStream) -> Option<RoundSummary>{
