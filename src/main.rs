@@ -5,10 +5,12 @@ mod function;
 
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
+use crate::function::round::{challenge, start_round};
 use crate::function::stream::{read_from_stream, write_to_stream};
 use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeResult, ChallengeResultData, MD5HashCashOutput};
 use crate::types::end::EndOfGame;
-use crate::types::player::{PublicLeaderBoard};
+use crate::types::error::{RoundStartError, RoundStartErrorEnum};
+use crate::types::player::{PublicLeaderBoard, PublicPlayer};
 use crate::types::round::RoundSummary;
 
 fn main() {
@@ -25,34 +27,29 @@ fn main() {
 	};
 	let end: EndOfGame;
 	loop {
-		let plb: PublicLeaderBoard = match read_from_stream(&stream) {
+		let plb = match start_round(&stream) {
 			Ok(val) => {
 				val
 			}
-			Err(e) => {
-				if e.id == 1 {
-					end = serde_json::from_str(&*e.text).unwrap();
-					break;
-				}else{
-					println!("Error start");
-					return;
+			Err(err) => {
+				match err.reason {
+					RoundStartErrorEnum::EndOfGame(eog) => {
+						end = eog;
+					}
+					RoundStartErrorEnum::ReadError => {
+						println!("Error on start round");
+					}
 				}
-			}
-		};
-		let test: Challenge = match read_from_stream(&stream) {
-			Ok(val) => {
-				val
-			}
-			Err(_) => {
-				println!("Dommage");
 				return;
 			}
 		};
-		let t = plb.PublicLeaderBoard.get(0).unwrap();
-		println!("{}", serde_json::to_string(&plb).unwrap());
-		println!("{}", serde_json::to_string(&test).unwrap());
-		let test = ChallengeResult { ChallengeResult: ChallengeResultData { next_target: t.name.clone(), answer: ChallengeAnswer::MD5HashCash(MD5HashCashOutput { hashcode: "Coucou".to_string(), seed: 0 }) } };
-		write_to_stream(&stream, serde_json::to_string(&test).unwrap());
+		let mut top1: &PublicPlayer = plb.PublicLeaderBoard.get(0).unwrap().clone();
+		for p in plb.PublicLeaderBoard {
+			if top1.score > p.score {
+				top1 = &p;
+			}
+		}
+		challenge(&stream, &top1);
 		let sum: RoundSummary = match read_from_stream(&stream) {
 			Ok(val) => {
 				val

@@ -1,8 +1,19 @@
+use crate::types::end::EndOfGame;
+
 pub struct ReadError{
-    pub(crate) id: i32,
-    pub(crate) text: String
+    pub id: i32,
+    pub text: String
+}
+
+pub enum RoundStartErrorEnum{
+    ReadError,
+    EndOfGame(EndOfGame)
+}
+
+pub struct RoundStartError{
+    pub reason: RoundStartErrorEnum
 }
 
 pub struct Error{
-    pub(crate) coucou: i32
+    pub coucou: i32
 }
