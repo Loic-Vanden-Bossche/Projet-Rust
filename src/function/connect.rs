@@ -1,98 +1,112 @@
 use std::net::TcpStream;
+use log::{error, trace, warn};
 use serde_json::to_string;
+use simplelog::debug;
 use crate::function::stream::{read_from_stream, write_to_stream};
-use crate::types::error::{Error};
 use crate::types::subscribe::{Name, Subscribe, SubscribeError, SubscribeResult, SubscribeResultEnum};
 use crate::types::welcome::Welcome;
 
-fn get_stream(ip: String) -> Result<TcpStream, Error>{
-    return match TcpStream::connect(ip) {
+fn get_stream(ip: String) -> Option<TcpStream>{
+    match TcpStream::connect(ip) {
         Ok(s) => {
-            Ok(s)
+            debug!("Socket successfully connected");
+            Some(s)
         }
-        Err(_) => {
-            println!("Failed to connect");
-            Err(Error{coucou: 4})
+        Err(e) => {
+            debug!("Socket failed to connect, {e}");
+            None
         }
-    };
+    }
 }
 
 fn hello(stream: &TcpStream) -> bool {
-    write_to_stream(&stream, "\"Hello\"".to_string());
-    return match read_from_stream(&stream){
+    if !write_to_stream(&stream, "\"Hello\"".to_string()){
+        debug!("Error on \"Hello\"");
+        return false;
+    }
+    match read_from_stream(&stream){
         Ok(val) => {
             let val: Welcome = val;
             if val.Welcome.version == 1 {
                 true
             }else{
-                println!("Unsupported version");
+                error!("Unsupported version");
                 false
             }
         }
         Err(_) => {
-            println!("Error while hello");
+            println!("Error on Welcome");
             false
         }
     }
 }
 
-fn subscribe(stream: &TcpStream, name: String) -> Result<i32, Error> {
+fn subscribe(stream: &TcpStream, name: String) -> bool {
     match to_string(&Subscribe{Subscribe: Name{ name }}) {
         Ok(val) => {
-            write_to_stream(stream, val);
+            if write_to_stream(stream, val) {
+                debug!("Successfully send subscribe request")
+            }else {
+                error!("Error on sending subscribe request")
+            }
         }
-        Err(_) => {
-            return Err(Error{coucou: 6})
+        Err(e) => {
+            trace!("Error on stringify data: {e}");
+            return false;
         }
     };
     let sub_res: SubscribeResult = match read_from_stream(&stream) {
         Ok(val) => {
+            debug!("Retrieve subscribe result");
             val
         }
         Err(_) => {
-            return Err(Error{coucou: 5})
+            error!("Error on retrieving subscribe result");
+            return false;
         }
     };
     match sub_res.SubscribeResult {
         SubscribeResultEnum::Ok => {
-            Ok(1)
+            debug!("Successfully subscribed");
+            true
         }
         SubscribeResultEnum::Err(err) => {
             match err {
                 SubscribeError::InvalidName => {
-                    println!("Invalid Name");
-                    Err(Error { coucou: 5 })
+                    error!("Invalid Name");
+                    false
                 }
                 SubscribeError::AlreadyRegistered => {
-                    println!("Already registered");
-                    Err(Error{coucou: 6})
+                    warn!("Already registered");
+                    false
                 }
             }
         }
     }
 }
 
-pub fn connect(ip: String, name: String) -> Result<TcpStream, Error>{
+pub fn connect(ip: String, name: String) -> Option<TcpStream>{
     let stream = match get_stream(ip) {
-        Ok(s) => {
+        Some(s) => {
+            debug!("Socket created");
             s
         }
-        Err(err) => {
+        None => {
             println!("Failed to connect");
-            return Err(err);
+            return None;
         }
     };
     if hello(&stream){
-        match subscribe(&stream, name) {
-            Ok(_) => {
-                Ok(stream)
-            }
-            Err(err) => {
-                println!("Error while subscribing");
-                Err(err)
-            }
+        debug!("Successfully hello");
+        if subscribe(&stream, name) {
+            debug!("Successfully subscribed");
+            Some(stream)
+        } else {
+            error!("Error on subscribe phase");
+            None
         }
     }else{
-        Err(Error{coucou: 5})
+        error!("Error on hello phase");
+        None
     }
 }
