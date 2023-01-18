@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use simplelog::debug;
 use crate::challenges::monstrous_maze::types::input::MonstrousMazeInput;
 use crate::challenges::monstrous_maze::types::map::Map;
 use crate::challenges::monstrous_maze::types::output::MonstrousMazeOutput;
@@ -12,7 +13,7 @@ fn parse_input(input: MonstrousMazeInput) -> Map {
         let mut row = Vec::new();
         for (x, ch) in line.chars().enumerate() {
             match ch {
-                'I' => player = (y, x),
+                'Y' => player = (y, x),
                 'X' => exit = (y, x),
                 _ => (),
             }
@@ -86,6 +87,7 @@ pub fn monstrous_maze(input: MonstrousMazeInput) -> MonstrousMazeOutput {
     let map = parse_input(input);
 
     if let Some(path) = find_path(&map) {
+        debug!("Path found: {}", path);
         MonstrousMazeOutput {
             path,
         }
