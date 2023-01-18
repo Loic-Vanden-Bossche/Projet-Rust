@@ -116,19 +116,6 @@ pub fn get_player(plb: &Vec<PublicPlayer>) -> Option<&PublicPlayer> {
     Some(top1)
 }
 
-pub fn end_of_round(stream: &TcpStream) -> Option<RoundSummary>{
-    match read_from_stream(stream) {
-        Ok(val) => {
-            debug!("Retrieve round summary");
-            Some(val)
-        }
-        Err(_) => {
-            error!("Error when retrieving end of round");
-            None
-        }
-    }
-}
-
 pub fn round(stream: &TcpStream) -> Result<RoundSummary, RoundError>{
     let plb = match start_round(&stream) {
         Ok(val) => {
