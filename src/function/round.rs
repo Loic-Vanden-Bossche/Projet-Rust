@@ -40,61 +40,62 @@ pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartEr
 }
 
 pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary>{
-    let challenge: Challenge = match read_from_stream(&stream) {
-        Ok(val) => {
-            debug!("Successfully retrieve challenge");
-            info!("I play");
-            val
-        }
-        Err(e) => {
-            debug!("No challenge");
-            return if e.id == 1 {
-                match serde_json::from_str(&e.text) {
-                    Ok(val) => {
-                        debug!("Round summary received");
-                        info!("Other player played");
-                        Some(val)
+    loop {
+        let challenge: Challenge = match read_from_stream(&stream) {
+            Ok(val) => {
+                debug!("Successfully retrieve challenge");
+                info!("I play");
+                val
+            }
+            Err(e) => {
+                debug!("No challenge");
+                return if e.id == 1 {
+                    match serde_json::from_str(&e.text) {
+                        Ok(val) => {
+                            debug!("Round summary received");
+                            info!("Other player played");
+                            Some(val)
+                        }
+                        Err(_) => {
+                            error!("Invalid round data received");
+                            None
+                        }
                     }
-                    Err(_) => {
-                        error!("Invalid round data received");
-                        None
-                    }
+                } else {
+                    error!("Error reading current round data");
+                    return None;
                 }
-            }else {
-                error!("Error reading current round data");
-                return None;
             }
-        }
-    };
-    let answer = match challenge.Challenge {
-        ChallengeEnum::MD5HashCash(input) => {
-            info!("Playing MD5HashCash");
-            ChallengeAnswer::MD5HashCash(hash_cash(input))
-        }
-        ChallengeEnum::MonstrousMaze(input) => {
-            info!("Playing MonstrousMaze");
-            ChallengeAnswer::MonstrousMaze(monstrous_maze(input))
-        }
-    };
-    let result = ChallengeResult {
-        ChallengeResult: ChallengeResultData {
-            next_target: next.name.clone(),
-            answer
-        }
-    };
-    match to_string(&result) {
-        Ok(text) => {
-            if write_to_stream(stream, text){
-                debug!("Challenge result send")
-            }else {
-                error!("Error sending challenge result")
+        };
+        let answer = match challenge.Challenge {
+            ChallengeEnum::MD5HashCash(input) => {
+                info!("Playing MD5HashCash");
+                ChallengeAnswer::MD5HashCash(hash_cash(input))
             }
-        }
-        Err(e) => {
-            debug!("Error on parsing challenge result: {e}");
+            ChallengeEnum::MonstrousMaze(input) => {
+                info!("Playing MonstrousMaze");
+                ChallengeAnswer::MonstrousMaze(monstrous_maze(input))
+            }
+        };
+        let result = ChallengeResult {
+            ChallengeResult: ChallengeResultData {
+                next_target: next.name.clone(),
+                answer
+            }
+        };
+        match to_string(&result) {
+            Ok(text) => {
+                if write_to_stream(stream, text) {
+                    debug!("Challenge result send")
+                } else {
+                    error!("Error sending challenge result")
+                }
+            }
+            Err(e) => {
+                debug!("Error on parsing challenge result: {e}");
+            }
         }
     }
-    end_of_round(stream)
 }
 
 pub fn get_player(plb: &Vec<PublicPlayer>) -> Option<&PublicPlayer> {
