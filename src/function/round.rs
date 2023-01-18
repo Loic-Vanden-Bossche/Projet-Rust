@@ -98,7 +98,7 @@ pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary
     }
 }
 
-pub fn get_player(plb: &Vec<PublicPlayer>) -> Option<&PublicPlayer> {
+pub fn get_player<'a>(plb: &'a Vec<PublicPlayer>, name: &String, filter: bool) -> Option<&'a PublicPlayer> {
     let mut top1: &PublicPlayer = match &plb.get(0) {
         Some(val) => {
             val
@@ -109,14 +109,14 @@ pub fn get_player(plb: &Vec<PublicPlayer>) -> Option<&PublicPlayer> {
         }
     };
     for p in plb {
-        if top1.score < p.score {
+        if top1.score < p.score && (!filter || p.name.ne(name)) {
             top1 = p;
         }
     }
     Some(top1)
 }
 
-pub fn round(stream: &TcpStream) -> Result<RoundSummary, RoundError>{
+pub fn round(stream: &TcpStream, name: &String) -> Result<RoundSummary, RoundError>{
     let plb = match start_round(&stream) {
         Ok(val) => {
             info!("Round start");
@@ -135,7 +135,7 @@ pub fn round(stream: &TcpStream) -> Result<RoundSummary, RoundError>{
             }
         }
     };
-    let top1 = match get_player(&plb.PublicLeaderBoard) {
+    let top1 = match get_player(&plb.PublicLeaderBoard, name, true) {
         Some(val) => {
             info!("Current best player is : {}", val.name);
             val
