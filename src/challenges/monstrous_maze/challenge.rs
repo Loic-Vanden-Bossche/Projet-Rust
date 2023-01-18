@@ -13,7 +13,7 @@ fn parse_input(input: MonstrousMazeInput) -> Map {
         let mut row = Vec::new();
         for (x, ch) in line.chars().enumerate() {
             match ch {
-                'Y' => player = (y, x),
+                'I' => player = (y, x),
                 'X' => exit = (y, x),
                 _ => (),
             }
