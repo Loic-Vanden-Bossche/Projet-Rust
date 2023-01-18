@@ -41,7 +41,8 @@ fn hello(stream: &TcpStream) -> bool {
     }
 }
 
-fn subscribe(stream: &TcpStream, name: String) -> bool {
+fn subscribe(stream: &TcpStream, name: &String) -> bool {
+    let name = name.clone();
     match to_string(&Subscribe{Subscribe: Name{ name }}) {
         Ok(val) => {
             if write_to_stream(stream, val) {
@@ -85,7 +86,7 @@ fn subscribe(stream: &TcpStream, name: String) -> bool {
     }
 }
 
-pub fn connect(ip: String, name: String) -> Option<TcpStream>{
+pub fn connect(ip: String, name: &String) -> Option<TcpStream>{
     debug!("Trying to connect to {ip} with name {name}");
     let stream = match get_stream(ip) {
         Some(s) => {

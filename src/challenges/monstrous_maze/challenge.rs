@@ -15,6 +15,7 @@ fn parse_input(input: MonstrousMazeInput) -> Map {
         for (x, ch) in line.chars().enumerate() {
             match ch {
                 'I' => player = (y, x),
+                'Y' => player = (y, x),
                 'X' => exit = (y, x),
                 _ => (),
             }

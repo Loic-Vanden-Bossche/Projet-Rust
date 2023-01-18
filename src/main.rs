@@ -30,7 +30,7 @@ fn main() {
 			println!("Error on loading logger: {err}")
 		}
 	}
-	let stream = match connect(make_url(host, port), name) {
+	let stream = match connect(make_url(host, port), &name) {
 		Some(s) => {
 			info!("Connected");
 			s
@@ -42,7 +42,7 @@ fn main() {
 	};
 	let end: EndOfGame;
 	loop {
-		match round(&stream) {
+		match round(&stream, &name) {
 			Ok( sum ) => {
 				info!("Challenge completed: {}", sum.RoundSummary.challenge)
 			}
@@ -68,7 +68,7 @@ fn main() {
 			}
 		}
 	}
-	let top1 = match get_player(&end.EndOfGame.leader_board) {
+	let top1 = match get_player(&end.EndOfGame.leader_board, &name, false) {
 		Some(val) => { val }
 		None => {
 			error!("No player on leaderboard");
