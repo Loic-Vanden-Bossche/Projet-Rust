@@ -15,10 +15,10 @@ use simplelog::{ColorChoice, Config, debug, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
 use crate::function::round::{get_player, round};
-use crate::tui::term::{clear, close_term, draw, get_term};
+use crate::tui::term::{clear, draw, get_term};
 use crate::types::end::EndOfGame;
 use crate::types::error::{RoundErrorReason};
-use crate::tui::event::{Event, event_loop, receive_event};
+use crate::tui::event::{event_loop, receive_event};
 use crate::tui::input::InputMode;
 use crate::tui::menu::{MenuItem};
 

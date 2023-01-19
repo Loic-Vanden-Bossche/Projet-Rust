@@ -1,25 +1,18 @@
-use std::{io, thread};
+use std::{io};
 use std::io::Stdout;
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
-use crossterm::{event, execute};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen};
-use log::{debug, error};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use log::{error};
 use tui::backend::CrosstermBackend;
-use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use tui::{Frame, Terminal};
-use tui::widgets::{Block, Borders, BorderType, Paragraph};
-use crossterm::event::Event as CEvent;
-use tui::style::{Color, Style};
-use tui::text::{Span, Spans};
+use tui::{Terminal};
+use tui::layout::{Constraint, Direction, Layout};
 use crate::tui::block::make_copright;
 use crate::tui::menu::{make_tabs, MenuItem, render_active_menu};
 
 pub fn get_term() -> Terminal<CrosstermBackend<Stdout>>{
     enable_raw_mode().expect("Raw mode");
-    let mut stdout = io::stdout();
+    let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
-    let mut term = Terminal::new(backend).expect("NIKKKK");
+    let term = Terminal::new(backend).expect("NIKKKK");
     return term;
 }
 

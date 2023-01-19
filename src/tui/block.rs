@@ -1,6 +1,5 @@
 use tui::layout::Alignment;
 use tui::style::{Color, Style};
-use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, BorderType, Paragraph};
 
 pub fn basic_block<'a>(title: String) -> Block<'a> {

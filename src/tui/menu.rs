@@ -103,7 +103,7 @@ pub fn render_active_menu(active_menu_item: MenuItem, rect: &mut Frame<Crossterm
 }
 
 pub fn make_intro<'a>(input: String) -> Paragraph<'a> {
-    let home = Paragraph::new((vec![
+    let home = Paragraph::new(vec![
         Spans::from(vec![Span::raw("")]),
         Spans::from(vec![Span::raw("Bienvenue")]),
         Spans::from(vec![Span::raw("")]),
@@ -114,7 +114,7 @@ pub fn make_intro<'a>(input: String) -> Paragraph<'a> {
         Spans::from(vec![Span::raw("Entre ton nom pour te connecter au serveur")]),
         Spans::from(vec![Span::raw("")]),
         Spans::from(vec![Span::raw(input)])
-    ]))
+    ])
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::White))
         .block(basic_block("Intro".to_string()));
