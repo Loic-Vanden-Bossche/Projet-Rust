@@ -7,6 +7,7 @@ use tui::text::{Span, Spans};
 use tui::widgets::{Paragraph, Tabs};
 use crate::State;
 use crate::tui::block::{basic_block};
+use crate::types::challenge::{Challenge, ChallengeEnum};
 use crate::types::player::PublicLeaderBoard;
 
 #[derive(Copy, Clone, Debug)]
@@ -58,19 +59,7 @@ pub fn make_menu<'a>(menu_titles: &Vec<&'a str>) -> Vec<Spans<'a>>{
         .collect()
 }
 
-pub fn make_summary<'a>() -> Paragraph<'a> {
-    Paragraph::new(vec![
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Summary")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Coucou")])
-    ])
-        .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Green))
-        .block(basic_block("Résumé".to_string()))
-}
-
-pub fn make_current<'a>(plb: &Option<PublicLeaderBoard>) -> Paragraph<'a> {
+pub fn make_summary<'a>(plb: &Option<PublicLeaderBoard>) -> Paragraph<'a> {
     let mut data: Vec<Spans> = vec![];
     if let Some(plb) = plb {
         for p in plb.PublicLeaderBoard.clone() {
@@ -80,10 +69,33 @@ pub fn make_current<'a>(plb: &Option<PublicLeaderBoard>) -> Paragraph<'a> {
     Paragraph::new(data)
         .alignment(Alignment::Left)
         .style(Style::default().fg(Color::Green))
+        .block(basic_block("Résumé".to_string()))
+}
+
+pub fn make_current(challenge: &Option<Challenge>) -> Paragraph {
+    let mut data: Vec<Spans> = vec![];
+    if let Some(challenge) = challenge {
+        match &challenge.Challenge {
+            ChallengeEnum::MD5HashCash(val) => {
+                data.push(Spans::from(vec![Span::raw("Complexity : "), Span::raw(val.complexity.to_string())]));
+                data.push(Spans::from(vec![Span::raw("Seed : "), Span::raw(val.message.clone())]));
+            }
+            ChallengeEnum::MonstrousMaze(val) => {
+                for _ in 0..val.grid.lines().count() {
+                    if let Some(l) = val.grid.lines().next() {
+                        data.push(Spans::from(l.clone()));
+                    }
+                }
+            }
+        }
+    }
+    Paragraph::new(data)
+        .alignment(Alignment::Left)
+        .style(Style::default().fg(Color::Green))
         .block(basic_block("Actuel".to_string()))
 }
 
-pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>, plb: &Option<PublicLeaderBoard>){
+pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>, plb: &Option<PublicLeaderBoard>, challenge: &Option<Challenge>){
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -91,16 +103,16 @@ pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>,
             Constraint::Percentage(50)
         ].as_ref())
         .split(chunk);
-    rect.render_widget(make_summary(), chunks[0]);
-    rect.render_widget(make_current(plb), chunks[1]);
+    rect.render_widget(make_summary(plb), chunks[0]);
+    rect.render_widget(make_current(challenge), chunks[1]);
 }
 
 pub fn render_active_menu(state: &State, rect: &mut Frame<CrosstermBackend<Stdout>>, chunk: Rect){
     match state.active_menu {
         MenuItem::Intro => rect.render_widget(make_intro(state.name.clone()), chunk),
-        MenuItem::Summary => rect.render_widget(make_summary(), chunk),
-        MenuItem::CurrentChallenge => rect.render_widget(make_current(&state.summary), chunk),
-        MenuItem::Split => render_split(chunk, rect, &state.summary),
+        MenuItem::Summary => rect.render_widget(make_summary(&state.summary), chunk),
+        MenuItem::CurrentChallenge => rect.render_widget(make_current(&state.current), chunk),
+        MenuItem::Split => render_split(chunk, rect, &state.summary, &state.current),
         _ => {}
     };
 }

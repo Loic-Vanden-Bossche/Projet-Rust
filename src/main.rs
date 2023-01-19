@@ -29,7 +29,6 @@ use crate::tui::input::InputMode;
 use crate::tui::menu::{MenuItem};
 use crate::types::challenge::Challenge;
 use crate::types::player::PublicLeaderBoard;
-use crate::types::round::RoundSummary;
 
 fn make_url(host: Option<String>, port: u32) -> String{
 	match host {
