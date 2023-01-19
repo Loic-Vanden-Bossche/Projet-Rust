@@ -12,6 +12,8 @@ use tui::widgets::{Block, Borders, BorderType, Paragraph};
 use crossterm::event::Event as CEvent;
 use tui::style::{Color, Style};
 use tui::text::{Span, Spans};
+use crate::tui::block::make_copright;
+use crate::tui::menu::{make_tabs, MenuItem, render_active_menu};
 
 pub fn get_term() -> Terminal<CrosstermBackend<Stdout>>{
     enable_raw_mode().expect("Raw mode");
@@ -22,9 +24,7 @@ pub fn get_term() -> Terminal<CrosstermBackend<Stdout>>{
 }
 
 pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
-    if let Err(_) = term.clear() {
-        error!("Error clearing terminal");
-    }
+    clear(term);
     if let Err(_) = disable_raw_mode() {
         error!("Error disabling raw mode");
     }
@@ -33,72 +33,28 @@ pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
     }
 }
 
-pub fn basic_block<'a>(title: String) -> Block<'a> {
-    Block::default()
-        .borders(Borders::ALL)
-        .style(Style::default().fg(Color::Rgb(226, 135, 67)))
-        .title(title)
-        .border_type(BorderType::Rounded)
+pub fn draw(term: &mut Terminal<CrosstermBackend<Stdout>>, menu_titles: &Vec<&str>, active_menu_item: MenuItem, input: &String){
+    term.draw(|rect| {
+        let size = rect.size();
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints(
+                [
+                    Constraint::Length(3),
+                    Constraint::Min(2),
+                    Constraint::Length(3)
+                ].as_ref(),
+            )
+            .split(size);
+        rect.render_widget(make_copright(), chunks[2]);
+        rect.render_widget(make_tabs(&menu_titles, active_menu_item), chunks[0]);
+        render_active_menu(active_menu_item, rect, chunks[1], &input)
+    }).expect("Pannik");
 }
 
-pub fn make_summary<'a>() -> Paragraph<'a> {
-    Paragraph::new(vec![
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Summary")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Coucou")])
-    ])
-        .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Green))
-        .block(basic_block("Résumé".to_string()))
-}
-
-pub fn make_current<'a>() -> Paragraph<'a> {
-    Paragraph::new(vec![
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Current")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Coucou")])
-    ])
-        .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Green))
-        .block(basic_block("Actuel".to_string()))
-}
-
-pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>){
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50)
-        ].as_ref())
-        .split(chunk);
-    rect.render_widget(make_summary(), chunks[0]);
-    rect.render_widget(make_current(), chunks[1]);
-}
-
-pub fn make_intro<'a>(input: String) -> Paragraph<'a> {
-    let home = Paragraph::new((vec![
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Bienvenue")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("à la")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::styled("patate", Style::default().fg(Color::LightBlue))]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Entre ton nom pour te connecter au serveur")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw(input)])
-    ]))
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::White))
-        .block(basic_block("Intro".to_string()));
-    home
-}
-
-pub fn make_copright<'a>() -> Paragraph<'a>{
-    Paragraph::new("patate - Groupe 1 4AL2 - SOARES Enzo - TURBIEZ Denis - VANDEN BOSSCHE Loïc - 2022/2023")
-        .style(Style::default().fg(Color::Red))
-        .alignment(Alignment::Center)
-        .block(basic_block("Copyright".to_string()))
+pub fn clear(term: &mut Terminal<CrosstermBackend<Stdout>>){
+    if let Err(_) = term.clear() {
+        error!("Error while clearing terminal");
+    }
 }

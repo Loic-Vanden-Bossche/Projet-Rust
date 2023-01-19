@@ -1,8 +1,14 @@
-use std::sync::mpsc::Sender;
+use std::io::Stdout;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 use crossterm::event;
-use crossterm::event::{Event as CEvent, KeyEvent};
+use crossterm::event::{Event as CEvent, KeyCode, KeyEvent};
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
+use crate::tui::input::InputMode;
+use crate::tui::menu::MenuItem;
+use crate::tui::term::close_term;
 
 pub enum Event<I> {
     Input(I),
@@ -29,4 +35,45 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
             }
         }
     });
+}
+
+pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, input_mode: &mut InputMode, active_menu_item: &mut MenuItem, input: &mut String, term: &mut Terminal<CrosstermBackend<Stdout>>) -> bool {
+    match rx.recv().unwrap() {
+        Event::Input(event) => {
+            match input_mode {
+                InputMode::Normal => match event.code {
+                    KeyCode::Char('q') => {
+                        close_term(term);
+                        return false;
+                    }
+                    KeyCode::Char('i') => {
+                        *active_menu_item = MenuItem::Intro;
+                        *input = "".to_string();
+                        *input_mode = InputMode::User;
+                    },
+                    KeyCode::Char('r') => *active_menu_item = MenuItem::Summary,
+                    KeyCode::Char('a') => *active_menu_item = MenuItem::CurrentChallenge,
+                    KeyCode::Char('s') => *active_menu_item = MenuItem::Split,
+                    _ => {}
+                }
+                InputMode::User => match event.code {
+                    KeyCode::Enter => {
+                        *input_mode = InputMode::Normal;
+                        *active_menu_item = MenuItem::Summary;
+                    }
+                    KeyCode::Char(c) => input.push(c),
+                    KeyCode::Backspace => {
+                        input.pop();
+                    },
+                    KeyCode::Esc => {
+                        close_term(term);
+                        return false;
+                    }
+                    _ => {}
+                }
+            }
+        },
+        Event::Tick => {}
+    };
+    return true;
 }
