@@ -1,3 +1,5 @@
+#[derive(Clone)]
 pub enum UIError{
-    ConnectError
+    ConnectError,
+    FatalError
 }

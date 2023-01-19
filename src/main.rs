@@ -7,24 +7,29 @@ mod function;
 mod challenges;
 mod tui;
 
+use std::fs::File;
 use std::io::Stdout;
 use std::net::TcpStream;
 use std::ops::Add;
 use std::sync::mpsc;
+use std::thread;
 use ::tui::backend::CrosstermBackend;
 use ::tui::Terminal;
-use log::{info, error, debug};
-use simplelog::{ColorChoice, Config, TerminalMode};
+use log::{info, error, debug, LevelFilter};
+use simplelog::{ColorChoice, Config, SimpleLogger, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
-use crate::function::round::{get_player, round};
+use crate::function::round::{get_challenge_input, get_player, respond_challenge, round, start_round};
 use crate::tui::error::UIError;
 use crate::tui::term::{clear, draw, get_term};
 use crate::types::end::EndOfGame;
-use crate::types::error::{RoundErrorReason};
-use crate::tui::event::{event_loop, receive_event};
+use crate::types::error::{ChallengeError, RoundErrorReason, RoundStartErrorEnum};
+use crate::tui::event::{Event, event_loop, GameEvent, receive_event};
 use crate::tui::input::InputMode;
 use crate::tui::menu::{MenuItem};
+use crate::types::challenge::Challenge;
+use crate::types::player::PublicLeaderBoard;
+use crate::types::round::RoundSummary;
 
 fn make_url(host: Option<String>, port: u32) -> String{
 	match host {
@@ -33,34 +38,91 @@ fn make_url(host: Option<String>, port: u32) -> String{
 	}.add(":").add(port.to_string().as_str())
 }
 
+#[derive(Clone)]
 pub struct State{
-	stream: Option<TcpStream>,
 	connected: bool,
 	name: String,
 	input_mode: InputMode,
 	active_menu: MenuItem,
-	term: Terminal<CrosstermBackend<Stdout>>,
-	error: Option<UIError>
+	error: Option<UIError>,
+	summary: Option<PublicLeaderBoard>,
+	eog: Option<EndOfGame>,
+	current: Option<Challenge>
 }
+
+type Term = Terminal<CrosstermBackend<Stdout>>;
 
 fn ui(){
 	let (tx, rx) = mpsc::channel();
-	event_loop(tx);
+	let (sS, rS) = mpsc::channel();
+	event_loop(tx.clone());
+	let mut term = get_term();
 	let mut state = State{
 		connected: false,
 		name: "".to_string(),
 		input_mode: InputMode::User,
 		active_menu: MenuItem::Intro,
-		stream: None,
-		term: get_term(),
-		error: None
+		error: None,
+		summary: None,
+		eog: None,
+		current: None
 	};
 	let menu_titles = vec!["Intro", "Résumé", "Actuel", "Split", "Quitter"];
 
-	clear(&mut state.term);
+	clear(&mut term);
+	let f = File::create("./log").unwrap();
+	simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f);
+	thread::spawn( move ||{
+		let (stream, name): (TcpStream, String) = rS.recv().unwrap();
+		debug!("Stream received");
+		loop {
+			let plb = match start_round(&stream) {
+				Ok(val) => {
+					tx.send(Event::Game(GameEvent::PublicLeaderBoard(val.clone())));
+					val
+				}
+				Err(e) => {
+					match e.reason {
+						RoundStartErrorEnum::EndOfGame(eog) => {
+							tx.send(Event::Game(GameEvent::EndOfGame(eog)));
+							break;
+						}
+						RoundStartErrorEnum::ReadError => {
+							tx.send(Event::Game(GameEvent::Error(UIError::FatalError)));
+							return;
+						}
+					}
+				}
+			};
+			let top1 = get_player(&plb.PublicLeaderBoard, &name, true).unwrap();
+			loop {
+				let challenge: Challenge = match get_challenge_input(&stream){
+					Ok(val) => {
+						debug!("Get challenge input");
+						tx.send(Event::Game(GameEvent::ChallengeInput(val.clone())));
+						val
+					},
+					Err(e) => match e {
+						ChallengeError::EndOfRound(val) => {
+							debug!("End of round");
+							tx.send(Event::Game(GameEvent::EndOfRound(val)));
+							break;
+						}
+						ChallengeError::ChallengeInput => {
+							error!("Invalid data receive at start of challenge");
+							tx.send(Event::Game(GameEvent::Error(UIError::FatalError)));
+							break;
+						}
+					}
+				};
+				respond_challenge(&stream, top1, challenge);
+			}
+		}
+	});
+
 	loop {
-		draw(&mut state, &menu_titles);
-		if !receive_event(&rx, &mut state){
+		draw(&mut state, &menu_titles, &mut term);
+		if !receive_event(&rx, &sS, &mut state, &mut term){
 			break;
 		}
 	}
@@ -69,7 +131,7 @@ fn ui(){
 
 
 fn main() {
-	let (name, port, debug, host) = if let Some(val) = parse_args(){
+	let (name, port, _, host) = if let Some(val) = parse_args(){
 		match simplelog::TermLogger::init(val.2, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
 			Ok(_) => { debug!("Logger loaded") }
 			Err(err) => {

@@ -1,6 +1,7 @@
 use std::ops::Add;
 use tui::layout::Alignment;
 use tui::style::{Color, Style};
+use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, BorderType, Paragraph};
 use crate::State;
 
@@ -18,8 +19,10 @@ pub fn make_status<'a>(connected: bool) -> Paragraph<'a>{
     }else{
         ("Non connecté", Color::Gray)
     };
-    Paragraph::new("Statut : ".to_string().add(statut))
-        .style(Style::default().fg(color))
+    Paragraph::new(Spans(vec![
+        Span::styled("Statut : ", Style::default().fg(Color::White)),
+        Span::styled(statut, Style::default().fg(color))
+    ]))
         .alignment(Alignment::Left)
         .block(basic_block("Statut".to_string()))
 }

@@ -1,16 +1,31 @@
+use std::net::TcpStream;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 use crossterm::event;
 use crossterm::event::{Event as CEvent, KeyCode, KeyEvent};
+use simplelog::debug;
 use crate::function::connect::connect;
-use crate::State;
+use crate::{State, Term};
 use crate::tui::error::UIError;
 use crate::tui::input::InputMode;
 use crate::tui::menu::MenuItem;
 use crate::tui::term::close_term;
+use crate::types::challenge::Challenge;
+use crate::types::end::EndOfGame;
+use crate::types::player::PublicLeaderBoard;
+use crate::types::round::RoundSummary;
+
+pub enum GameEvent{
+    PublicLeaderBoard(PublicLeaderBoard),
+    ChallengeInput(Challenge),
+    EndOfRound(RoundSummary),
+    EndOfGame(EndOfGame),
+    Error(UIError)
+}
 
 pub enum Event<I> {
+    Game(GameEvent),
     Input(I),
     Tick,
 }
@@ -37,13 +52,13 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
     });
 }
 
-pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, state: &mut State) -> bool {
+pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, String)>, state: &mut State, term: &mut Term) -> bool {
     match rx.recv().unwrap() {
         Event::Input(event) => {
             match state.input_mode {
                 InputMode::Normal => match event.code {
                     KeyCode::Char('q') => {
-                        close_term(&mut state.term);
+                        close_term(term);
                         return false;
                     }
                     KeyCode::Char('i') => {
@@ -61,7 +76,7 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, state: &mut State) -> bool 
                     KeyCode::Enter => {
                         match connect("127.0.0.1:7878".to_string(), &state.name) {
                             Some(val) => {
-                                state.stream = Some(val);
+                                sS.send((val, state.name.clone()));
                                 state.connected = true;
                                 state.input_mode = InputMode::Normal;
                                 state.active_menu = MenuItem::Summary;
@@ -76,14 +91,31 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, state: &mut State) -> bool 
                         state.name.pop();
                     },
                     KeyCode::Esc => {
-                        close_term(&mut state.term);
+                        close_term(term);
                         return false;
                     }
                     _ => {}
                 }
             }
         },
-        Event::Tick => {}
+        Event::Tick => {},
+        Event::Game(ev) => match ev {
+            GameEvent::EndOfGame(eog) => {
+                state.eog = Some(eog)
+            },
+            GameEvent::PublicLeaderBoard(plb) => {
+                state.summary = Some(plb)
+            }
+            GameEvent::Error(e) => {
+                state.error = Some(e);
+            }
+            GameEvent::ChallengeInput(val) => {
+                state.current = Some(val);
+            }
+            GameEvent::EndOfRound(_) => {
+                debug!("End of round");
+            }
+        }
     };
     return true;
 }

@@ -7,6 +7,7 @@ use tui::text::{Span, Spans};
 use tui::widgets::{Paragraph, Tabs};
 use crate::State;
 use crate::tui::block::{basic_block};
+use crate::types::player::PublicLeaderBoard;
 
 #[derive(Copy, Clone, Debug)]
 pub enum MenuItem {
@@ -69,19 +70,20 @@ pub fn make_summary<'a>() -> Paragraph<'a> {
         .block(basic_block("Résumé".to_string()))
 }
 
-pub fn make_current<'a>() -> Paragraph<'a> {
-    Paragraph::new(vec![
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Current")]),
-        Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Coucou")])
-    ])
+pub fn make_current<'a>(plb: &Option<PublicLeaderBoard>) -> Paragraph<'a> {
+    let mut data: Vec<Spans> = vec![];
+    if let Some(plb) = plb {
+        for p in plb.PublicLeaderBoard.clone() {
+            data.push(Spans::from(vec![Span::raw(p.name), Span::raw(" : "), Span::raw(p.score.to_string())]));
+        }
+    }
+    Paragraph::new(data)
         .alignment(Alignment::Left)
         .style(Style::default().fg(Color::Green))
         .block(basic_block("Actuel".to_string()))
 }
 
-pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>){
+pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>, plb: &Option<PublicLeaderBoard>){
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -90,15 +92,15 @@ pub fn render_split(chunk: Rect, rect: &mut Frame<'_, CrosstermBackend<Stdout>>)
         ].as_ref())
         .split(chunk);
     rect.render_widget(make_summary(), chunks[0]);
-    rect.render_widget(make_current(), chunks[1]);
+    rect.render_widget(make_current(plb), chunks[1]);
 }
 
-pub fn render_active_menu(active_menu_item: MenuItem, rect: &mut Frame<CrosstermBackend<Stdout>>, chunk: Rect, input: &String){
-    match active_menu_item {
-        MenuItem::Intro => rect.render_widget(make_intro(input.clone()), chunk),
+pub fn render_active_menu(state: &State, rect: &mut Frame<CrosstermBackend<Stdout>>, chunk: Rect){
+    match state.active_menu {
+        MenuItem::Intro => rect.render_widget(make_intro(state.name.clone()), chunk),
         MenuItem::Summary => rect.render_widget(make_summary(), chunk),
-        MenuItem::CurrentChallenge => rect.render_widget(make_current(), chunk),
-        MenuItem::Split => render_split(chunk, rect),
+        MenuItem::CurrentChallenge => rect.render_widget(make_current(&state.summary), chunk),
+        MenuItem::Split => render_split(chunk, rect, &state.summary),
         _ => {}
     };
 }
