@@ -6,7 +6,7 @@ use tui::backend::CrosstermBackend;
 use tui::{Terminal};
 use tui::layout::{Constraint, Direction, Layout};
 use crate::{State, Term};
-use crate::tui::block::{make_copright, make_status};
+use crate::tui::block::{make_copright, render_status};
 use crate::tui::menu::{make_tabs, render_active_menu};
 
 pub fn get_term() -> Term{
@@ -44,7 +44,7 @@ pub fn draw(state: &mut State, menu_titles: &Vec<&str>, term: &mut Term){
             .split(size);
         rect.render_widget(make_copright(), chunks[3]);
         rect.render_widget(make_tabs(&menu_titles, state.active_menu), chunks[0]);
-        rect.render_widget(make_status(state.connected), chunks[1]);
+        render_status(state, chunks[1], rect);
         render_active_menu(state, rect, chunks[2]);
     }).expect("Pannik");
 }
