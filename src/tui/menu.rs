@@ -5,6 +5,7 @@ use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{Paragraph, Tabs};
+use crate::State;
 use crate::tui::block::{basic_block};
 
 #[derive(Copy, Clone, Debug)]

@@ -1,11 +1,11 @@
-use std::io::Stdout;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 use crossterm::event;
 use crossterm::event::{Event as CEvent, KeyCode, KeyEvent};
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use crate::function::connect::connect;
+use crate::State;
+use crate::tui::error::UIError;
 use crate::tui::input::InputMode;
 use crate::tui::menu::MenuItem;
 use crate::tui::term::close_term;
@@ -37,36 +37,46 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
     });
 }
 
-pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, input_mode: &mut InputMode, active_menu_item: &mut MenuItem, input: &mut String, term: &mut Terminal<CrosstermBackend<Stdout>>) -> bool {
+pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, state: &mut State) -> bool {
     match rx.recv().unwrap() {
         Event::Input(event) => {
-            match input_mode {
+            match state.input_mode {
                 InputMode::Normal => match event.code {
                     KeyCode::Char('q') => {
-                        close_term(term);
+                        close_term(&mut state.term);
                         return false;
                     }
                     KeyCode::Char('i') => {
-                        *active_menu_item = MenuItem::Intro;
-                        *input = "".to_string();
-                        *input_mode = InputMode::User;
+                        state.active_menu = MenuItem::Intro;
+                        if !state.connected {
+                            state.input_mode = InputMode::User;
+                        }
                     },
-                    KeyCode::Char('r') => *active_menu_item = MenuItem::Summary,
-                    KeyCode::Char('a') => *active_menu_item = MenuItem::CurrentChallenge,
-                    KeyCode::Char('s') => *active_menu_item = MenuItem::Split,
+                    KeyCode::Char('r') => state.active_menu = MenuItem::Summary,
+                    KeyCode::Char('a') => state.active_menu = MenuItem::CurrentChallenge,
+                    KeyCode::Char('s') => state.active_menu = MenuItem::Split,
                     _ => {}
                 }
                 InputMode::User => match event.code {
                     KeyCode::Enter => {
-                        *input_mode = InputMode::Normal;
-                        *active_menu_item = MenuItem::Summary;
+                        match connect("127.0.0.1:7878".to_string(), &state.name) {
+                            Some(val) => {
+                                state.stream = Some(val);
+                                state.connected = true;
+                                state.input_mode = InputMode::Normal;
+                                state.active_menu = MenuItem::Summary;
+                            },
+                            None => {
+                                state.error = Some(UIError::ConnectError)
+                            }
+                        }
                     }
-                    KeyCode::Char(c) => input.push(c),
+                    KeyCode::Char(c) => state.name.push(c),
                     KeyCode::Backspace => {
-                        input.pop();
+                        state.name.pop();
                     },
                     KeyCode::Esc => {
-                        close_term(term);
+                        close_term(&mut state.term);
                         return false;
                     }
                     _ => {}

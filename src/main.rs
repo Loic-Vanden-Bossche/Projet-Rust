@@ -7,14 +7,18 @@ mod function;
 mod challenges;
 mod tui;
 
+use std::io::Stdout;
+use std::net::TcpStream;
 use std::ops::Add;
 use std::sync::mpsc;
-use crossterm::event::{KeyCode};
-use log::{info, error};
-use simplelog::{ColorChoice, Config, debug, TerminalMode};
+use ::tui::backend::CrosstermBackend;
+use ::tui::Terminal;
+use log::{info, error, debug};
+use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
 use crate::function::round::{get_player, round};
+use crate::tui::error::UIError;
 use crate::tui::term::{clear, draw, get_term};
 use crate::types::end::EndOfGame;
 use crate::types::error::{RoundErrorReason};
@@ -29,18 +33,34 @@ fn make_url(host: Option<String>, port: u32) -> String{
 	}.add(":").add(port.to_string().as_str())
 }
 
-fn main(){
-	let mut input_mode = InputMode::User;
-	let mut input: String = "".to_string();
-	let mut active_menu_item = MenuItem::Intro;
-	let menu_titles = vec!["Intro", "Résumé", "Actuel", "Split", "Quitter"];
+pub struct State{
+	stream: Option<TcpStream>,
+	connected: bool,
+	name: String,
+	input_mode: InputMode,
+	active_menu: MenuItem,
+	term: Terminal<CrosstermBackend<Stdout>>,
+	error: Option<UIError>
+}
+
+fn ui(){
 	let (tx, rx) = mpsc::channel();
 	event_loop(tx);
-	let mut term = get_term();
-	clear(&mut term);
+	let mut state = State{
+		connected: false,
+		name: "".to_string(),
+		input_mode: InputMode::User,
+		active_menu: MenuItem::Intro,
+		stream: None,
+		term: get_term(),
+		error: None
+	};
+	let menu_titles = vec!["Intro", "Résumé", "Actuel", "Split", "Quitter"];
+
+	clear(&mut state.term);
 	loop {
-		draw(&mut term, &menu_titles, active_menu_item, &input);
-		if !receive_event(&rx, &mut input_mode, &mut active_menu_item, &mut input, &mut term){
+		draw(&mut state, &menu_titles);
+		if !receive_event(&rx, &mut state){
 			break;
 		}
 	}
@@ -48,14 +68,26 @@ fn main(){
 
 
 
-fn main2() {
-	let (name, port, debug, host) = parse_args();
-	match simplelog::TermLogger::init(debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
-		Ok(_) => { debug!("Logger loaded") }
-		Err(err) => {
-			println!("Error on loading logger: {err}")
+fn main() {
+	let (name, port, debug, host) = if let Some(val) = parse_args(){
+		match simplelog::TermLogger::init(val.2, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
+			Ok(_) => { debug!("Logger loaded") }
+			Err(err) => {
+				println!("Error on loading logger: {err}")
+			}
 		}
-	}
+		info!("No UI");
+		let name = if let Some(val) = val.0{
+			val
+		}else{
+			error!("Name required without UI");
+			return;
+		};
+		(name, val.1, val.2, val.3)
+	}else{
+		ui();
+		return;
+	};
 	let stream = match connect(make_url(host, port), &name) {
 		Some(s) => {
 			info!("Connected");

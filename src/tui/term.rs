@@ -5,8 +5,9 @@ use log::{error};
 use tui::backend::CrosstermBackend;
 use tui::{Terminal};
 use tui::layout::{Constraint, Direction, Layout};
-use crate::tui::block::make_copright;
-use crate::tui::menu::{make_tabs, MenuItem, render_active_menu};
+use crate::State;
+use crate::tui::block::{make_copright, make_status};
+use crate::tui::menu::{make_tabs, render_active_menu};
 
 pub fn get_term() -> Terminal<CrosstermBackend<Stdout>>{
     enable_raw_mode().expect("Raw mode");
@@ -26,8 +27,8 @@ pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
     }
 }
 
-pub fn draw(term: &mut Terminal<CrosstermBackend<Stdout>>, menu_titles: &Vec<&str>, active_menu_item: MenuItem, input: &String){
-    term.draw(|rect| {
+pub fn draw(state: &mut State, menu_titles: &Vec<&str>){
+    state.term.draw(|rect| {
         let size = rect.size();
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -35,14 +36,16 @@ pub fn draw(term: &mut Terminal<CrosstermBackend<Stdout>>, menu_titles: &Vec<&st
             .constraints(
                 [
                     Constraint::Length(3),
+                    Constraint::Length(3),
                     Constraint::Min(2),
                     Constraint::Length(3)
                 ].as_ref(),
             )
             .split(size);
-        rect.render_widget(make_copright(), chunks[2]);
-        rect.render_widget(make_tabs(&menu_titles, active_menu_item), chunks[0]);
-        render_active_menu(active_menu_item, rect, chunks[1], &input)
+        rect.render_widget(make_copright(), chunks[3]);
+        rect.render_widget(make_tabs(&menu_titles, state.active_menu), chunks[0]);
+        rect.render_widget(make_status(state.connected), chunks[1]);
+        render_active_menu(state.active_menu, rect, chunks[2], &state.name);
     }).expect("Pannik");
 }
 
