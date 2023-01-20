@@ -1,11 +1,8 @@
 use std::io::Stdout;
-use std::ops::Add;
-use std::os::linux::raw::stat;
-use log::error;
 use tui::backend::CrosstermBackend;
 use tui::Frame;
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Style};
+use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, BorderType, Paragraph};
 use crate::function::round::get_player;
@@ -52,10 +49,10 @@ pub fn render_status<'a>(state: &State, chunk: Rect, rect: &mut Frame<CrosstermB
             ("Défaite", Color::Red)
         }
     };
-    let (error, color_error) = if state.error.is_some(){
-        ("Il y a une erreur", Color::Red)
+    let (error, color_error, modifier) = if state.error.is_some(){
+        ("Il y a une erreur", Color::Red, Modifier::SLOW_BLINK)
     }else {
-        ("Rien à signaler", Color::LightGreen)
+        ("Rien à signaler", Color::LightGreen, Modifier::empty())
     };
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -86,7 +83,7 @@ pub fn render_status<'a>(state: &State, chunk: Rect, rect: &mut Frame<CrosstermB
         .block(basic_block("Résultat".to_string()));
     let err = Paragraph::new(Spans(vec![
         Span::styled("Erreur : ", Style::default().fg(Color::Red)),
-        Span::styled(error, Style::default().fg(color_error))
+        Span::styled(error, Style::default().fg(color_error).add_modifier(modifier))
     ]))
         .alignment(Alignment::Left)
         .block(basic_block("Erreur".to_string()));

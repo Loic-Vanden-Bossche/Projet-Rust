@@ -94,14 +94,13 @@ pub fn make_current(challenge: &Option<Challenge>) -> Paragraph {
             }
             ChallengeEnum::MonstrousMaze(val) => {
                 for line in val.grid.lines() {
-                    data.push(Spans::from(line.clone()));
+                    data.push(Spans::from(Span::styled(line.clone(), Style::default().fg(Color::Magenta))));
                 }
             }
         }
     }
     Paragraph::new(data)
         .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Green))
         .block(basic_block("Actuel".to_string()))
 }
 
