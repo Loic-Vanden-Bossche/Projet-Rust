@@ -6,7 +6,7 @@ use crate::challenges::hash_cash::hash_cash;
 use crate::challenges::monstrous_maze::challenge::monstrous_maze;
 use crate::function::stream::{read_from_stream, write_to_stream};
 use crate::types::challenge::{Challenge, ChallengeAnswer, ChallengeEnum, ChallengeResult, ChallengeResultData};
-use crate::types::error::{RoundError, RoundStartError, RoundStartErrorEnum};
+use crate::types::error::{ChallengeError, RoundError, RoundStartError, RoundStartErrorEnum};
 use crate::types::error::RoundErrorReason::{EndError, EndOfGame, LeaderBoardError, StartError};
 use crate::types::error::RoundStartErrorEnum::{EndOfGame as EndOfGameError, ReadError};
 use crate::types::player::{PublicLeaderBoard, PublicPlayer};
@@ -39,62 +39,85 @@ pub fn start_round(stream: &TcpStream) -> Result<PublicLeaderBoard, RoundStartEr
     }
 }
 
+pub fn get_challenge_input(stream: &TcpStream) -> Result<Challenge, ChallengeError>{
+    match read_from_stream(&stream) {
+        Ok(val) => {
+            debug!("Successfully retrieve challenge");
+            info!("I play");
+            Ok(val)
+        }
+        Err(e) => {
+            debug!("No Challenge");
+            if e.id == 1 {
+                match serde_json::from_str(&e.text) {
+                    Ok(val) => {
+                        debug!("Round summary received");
+                        info!("Other player played");
+                        Err(ChallengeError::EndOfRound(val))
+                    }
+                    Err(_) => {
+                        error!("Invalid round data  received");
+                        Err(ChallengeError::ChallengeInput)
+                    }
+                }
+            }else{
+                error!("Error reading current round data");
+                Err(ChallengeError::ChallengeInput)
+            }
+        }
+    }
+}
+
+pub fn respond_challenge(stream: &TcpStream, next: &PublicPlayer, challenge: Challenge) {
+    let answer = match challenge.Challenge {
+        ChallengeEnum::MD5HashCash(input) => {
+            info!("Playing MD5HashCash");
+            ChallengeAnswer::MD5HashCash(hash_cash(input))
+        }
+        ChallengeEnum::MonstrousMaze(input) => {
+            info!("Playing MonstrousMaze");
+            ChallengeAnswer::MonstrousMaze(monstrous_maze(input))
+        }
+    };
+    let result = ChallengeResult {
+        ChallengeResult: ChallengeResultData {
+            next_target: next.name.clone(),
+            answer
+        }
+    };
+    match to_string(&result) {
+        Ok(text) => {
+            if write_to_stream(stream, text) {
+                debug!("Challenge result send")
+            } else {
+                error!("Error sending challenge result")
+            }
+        }
+        Err(e) => {
+            debug!("Error on parsing challenge result: {e}");
+        }
+    }
+}
+
 pub fn challenge(stream: &TcpStream, next: &PublicPlayer) -> Option<RoundSummary>{
     loop {
-        let challenge: Challenge = match read_from_stream(&stream) {
+        let challenge: Challenge = match get_challenge_input(stream){
             Ok(val) => {
-                debug!("Successfully retrieve challenge");
-                info!("I play");
+                debug!("Get challenge input");
                 val
-            }
-            Err(e) => {
-                debug!("No challenge");
-                return if e.id == 1 {
-                    match serde_json::from_str(&e.text) {
-                        Ok(val) => {
-                            debug!("Round summary received");
-                            info!("Other player played");
-                            Some(val)
-                        }
-                        Err(_) => {
-                            error!("Invalid round data received");
-                            None
-                        }
-                    }
-                } else {
-                    error!("Error reading current round data");
+            },
+            Err(e) => match e { 
+                ChallengeError::EndOfRound(val) => {
+                    debug!("End of round");
+                    return Some(val);
+                }
+                ChallengeError::ChallengeInput => {
+                    error!("Invalid data receive at start of challenge");
                     return None;
                 }
             }
         };
-        let answer = match challenge.Challenge {
-            ChallengeEnum::MD5HashCash(input) => {
-                info!("Playing MD5HashCash");
-                ChallengeAnswer::MD5HashCash(hash_cash(input))
-            }
-            ChallengeEnum::MonstrousMaze(input) => {
-                info!("Playing MonstrousMaze");
-                ChallengeAnswer::MonstrousMaze(monstrous_maze(input))
-            }
-        };
-        let result = ChallengeResult {
-            ChallengeResult: ChallengeResultData {
-                next_target: next.name.clone(),
-                answer
-            }
-        };
-        match to_string(&result) {
-            Ok(text) => {
-                if write_to_stream(stream, text) {
-                    debug!("Challenge result send")
-                } else {
-                    error!("Error sending challenge result")
-                }
-            }
-            Err(e) => {
-                debug!("Error on parsing challenge result: {e}");
-            }
-        }
+        respond_challenge(stream, next, challenge);
     }
 }
 
@@ -109,7 +132,7 @@ pub fn get_player<'a>(plb: &'a Vec<PublicPlayer>, name: &String, filter: bool) -
         }
     };
     for p in plb {
-        if top1.score < p.score && (!filter || p.name.ne(name)) {
+        if !top1.is_active || (p.is_active && top1.score < p.score && (!filter || p.name.ne(name))) {
             top1 = p;
         }
     }

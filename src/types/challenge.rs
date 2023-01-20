@@ -4,12 +4,12 @@ use crate::challenges::hash_cash::types::output::MD5HashCashOutput;
 use crate::challenges::monstrous_maze::types::input::MonstrousMazeInput;
 use crate::challenges::monstrous_maze::types::output::MonstrousMazeOutput;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Challenge{
     pub Challenge: ChallengeEnum
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChallengeEnum{
     MD5HashCash(MD5HashCashInput),
     MonstrousMaze(MonstrousMazeInput)
@@ -32,7 +32,7 @@ pub struct ChallengeResultData{
     pub next_target: String
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChallengeValue{
     Unreachable,
     Timeout,
@@ -40,7 +40,7 @@ pub enum ChallengeValue{
     Ok {used_time: f64, next_target: String}
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReportedChallengeResult{
     name: String,
     value: ChallengeValue

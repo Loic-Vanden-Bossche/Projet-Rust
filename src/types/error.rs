@@ -1,4 +1,5 @@
 use crate::types::end::EndOfGame;
+use crate::types::round::RoundSummary;
 
 pub struct ReadError{
     pub id: i32,
@@ -23,4 +24,9 @@ pub enum RoundErrorReason {
     StartError,
     LeaderBoardError,
     EndError
+}
+
+pub enum ChallengeError {
+    ChallengeInput,
+    EndOfRound(RoundSummary)
 }
