@@ -5,35 +5,20 @@ mod function;
 mod challenges;
 mod tui;
 
-use std::fs::File;
 use std::io::Stdout;
-use std::net::TcpStream;
-use std::ops::Add;
-use std::sync::mpsc;
-use std::thread;
 use ::tui::backend::CrosstermBackend;
 use ::tui::Terminal;
-use log::{info, error, debug, LevelFilter};
+use log::{info, error, debug};
 use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::args::parse_args;
-use crate::function::connect::connect;
-use crate::function::round::{get_challenge_input, get_player, respond_challenge, round, start_round};
+use crate::function::game::game;
 use crate::tui::error::UIError;
-use crate::tui::term::{clear, draw, get_term};
 use crate::types::end::EndOfGame;
-use crate::types::error::{ChallengeError, RoundErrorReason, RoundStartErrorEnum};
-use crate::tui::event::{Event, event_loop, GameEvent, receive_event, send};
 use crate::tui::input::InputMode;
 use crate::tui::menu::{MenuItem};
+use crate::tui::ui::ui;
 use crate::types::challenge::Challenge;
 use crate::types::player::PublicLeaderBoard;
-
-fn make_url(host: Option<String>, port: u32) -> String{
-	match host {
-		Some(host) => { host }
-		None => { "localhost".to_string() }
-	}.add(":").add(port.to_string().as_str())
-}
 
 #[derive(Clone)]
 pub struct State{
@@ -49,177 +34,24 @@ pub struct State{
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 
-fn ui(){
-	let (tx, rx) = mpsc::channel();
-	let (sS, rS) = mpsc::channel();
-	event_loop(tx.clone());
-	let mut term = get_term();
-	let mut state = State{
-		connected: false,
-		name: "".to_string(),
-		input_mode: InputMode::User,
-		active_menu: MenuItem::Intro,
-		error: None,
-		summary: None,
-		eog: None,
-		current: None
-	};
-	let menu_titles = vec!["Intro", "Résumé", "Actuel", "Split", "Quitter"];
-
-	clear(&mut term);
-	match File::create("./log"){
-		Ok(f) => match simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f){
-			Ok(_) => {
-				debug!("File logger successfully loaded");
-			}
-			Err(e) => {
-				println!("Cannot load logger : {e}");
-			}
-		}
-		Err(e) => {
-			println!("Error : Can't open log file\nReason {e}");
-		}
-	}
-	thread::spawn( move ||{
-		let (stream, name): (TcpStream, String) = match rS.recv(){
-			Ok(val) => {
-				debug!("Successfully received stream and name in threaad [game]");
-				val
-			}
-			Err(err) => {
-				error!("Error receiving stream and name in thread [game]: {err}");
-				return;
-			}
-		};
-		loop {
-			let plb = match start_round(&stream) {
-				Ok(val) => {
-					send(&tx, Event::Game(GameEvent::PublicLeaderBoard(val.clone())));
-					val
-				}
-				Err(e) => {
-					match e.reason {
-						RoundStartErrorEnum::EndOfGame(eog) => {
-							send(&tx, Event::Game(GameEvent::EndOfGame(eog)));
-							break;
-						}
-						RoundStartErrorEnum::ReadError => {
-							send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
-							return;
-						}
-					}
-				}
-			};
-			let top1 = match get_player(&plb.PublicLeaderBoard, &name, true) {
-				Some(player) => {
-					debug!("Retrieve next player");
-					player
-				}
-				None => {
-					error!("Error retrieving next player");
-					send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
-					return;
-				}
-			};
-			loop {
-				let challenge: Challenge = match get_challenge_input(&stream){
-					Ok(val) => {
-						debug!("Get challenge input");
-						send(&tx, Event::Game(GameEvent::ChallengeInput(val.clone())));
-						val
-					},
-					Err(e) => match e {
-						ChallengeError::EndOfRound(val) => {
-							debug!("End of round");
-							send(&tx, Event::Game(GameEvent::EndOfRound(val)));
-							break;
-						}
-						ChallengeError::ChallengeInput => {
-							error!("Invalid data receive at start of challenge");
-							send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
-							break;
-						}
-					}
-				};
-				respond_challenge(&stream, top1, challenge);
-			}
-		}
-	});
-
-	loop {
-		draw(&mut state, &menu_titles, &mut term);
-		if !receive_event(&rx, &sS, &mut state, &mut term){
-			break;
-		}
-	}
-}
-
-
-
 fn main() {
-	let (name, port, _, host) = if let Some(val) = parse_args(){
-		match simplelog::TermLogger::init(val.2, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
+	let (name, port, debug, host, no_ui) = parse_args();
+	if no_ui{
+		match simplelog::TermLogger::init(debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
 			Ok(_) => { debug!("Logger loaded") }
 			Err(err) => {
 				println!("Error on loading logger: {err}")
 			}
 		}
 		info!("No UI");
-		let name = if let Some(val) = val.0{
+		let name = if let Some(val) = name{
 			val
 		}else{
 			error!("Name required without UI");
 			return;
 		};
-		(name, val.1, val.2, val.3)
+		game(host, port, name);
 	}else{
-		ui();
-		return;
+		ui(debug);
 	};
-	let stream = match connect(make_url(host, port), &name) {
-		Some(s) => {
-			info!("Connected");
-			s
-		}
-		None => {
-			error!("Error while connecting");
-			return;
-		}
-	};
-	let end: EndOfGame;
-	loop {
-		match round(&stream, &name) {
-			Ok( sum ) => {
-				info!("Challenge completed: {}", sum.RoundSummary.challenge)
-			}
-			Err(e) => {
-				match e.reason {
-					RoundErrorReason::EndOfGame(eog) => {
-						end = eog;
-						break;
-					}
-					RoundErrorReason::StartError => {
-						error!("Error starting a round");
-						return;
-					}
-					RoundErrorReason::LeaderBoardError => {
-						error!("Error getting leader board");
-						return;
-					}
-					RoundErrorReason::EndError => {
-						error!("Error ending a round");
-						return;
-					}
-				}
-			}
-		}
-	}
-	let top1 = match get_player(&end.EndOfGame.leader_board, &name, false) {
-		Some(val) => { val }
-		None => {
-			error!("No player on leaderboard");
-			return;
-		}
-	};
-	info!("Player {} win with {} point! GG", top1.name, top1.score);
 }
