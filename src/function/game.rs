@@ -1,5 +1,6 @@
 use std::ops::Add;
-use log::{info, error};
+use log::{info, error, debug, LevelFilter};
+use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::connect::connect;
 use crate::function::round::{get_player, round};
 use crate::types::end::EndOfGame;
@@ -12,7 +13,20 @@ fn make_url(host: Option<String>, port: u32) -> String{
     }.add(":").add(port.to_string().as_str())
 }
 
-pub fn game(host: Option<String>, port: u32, name: String){
+pub fn game(host: Option<String>, port: u32, name: Option<String>, debug: LevelFilter){
+    match simplelog::TermLogger::init(debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
+        Ok(_) => { debug!("Logger loaded") }
+        Err(err) => {
+            println!("Error on loading logger: {err}")
+        }
+    }
+    info!("No UI");
+    let name = if let Some(val) = name{
+        val
+    }else{
+        error!("Name required without UI");
+        return;
+    };
     let stream = match connect(make_url(host, port), &name) {
         Some(s) => {
             info!("Connected");

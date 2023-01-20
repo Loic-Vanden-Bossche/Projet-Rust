@@ -8,8 +8,6 @@ mod tui;
 use std::io::Stdout;
 use ::tui::backend::CrosstermBackend;
 use ::tui::Terminal;
-use log::{info, error, debug};
-use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::game::game;
 use crate::tui::error::UIError;
@@ -37,20 +35,7 @@ type Term = Terminal<CrosstermBackend<Stdout>>;
 fn main() {
 	let (name, port, debug, host, no_ui) = parse_args();
 	if no_ui{
-		match simplelog::TermLogger::init(debug, Config::default(), TerminalMode::Mixed, ColorChoice::Always) {
-			Ok(_) => { debug!("Logger loaded") }
-			Err(err) => {
-				println!("Error on loading logger: {err}")
-			}
-		}
-		info!("No UI");
-		let name = if let Some(val) = name{
-			val
-		}else{
-			error!("Name required without UI");
-			return;
-		};
-		game(host, port, name);
+		game(host, port, name, debug);
 	}else{
 		ui(debug);
 	};
