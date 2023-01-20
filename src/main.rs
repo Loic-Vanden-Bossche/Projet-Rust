@@ -14,6 +14,6 @@ fn main() {
 	if no_ui{
 		game(host, port, name, debug);
 	}else{
-		ui(debug);
+		ui(host, port, debug);
 	};
 }

@@ -5,6 +5,7 @@ use log::{debug, LevelFilter};
 use simplelog::Config;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
+use crate::function::game::make_url;
 use crate::tui::error::UIError;
 use crate::tui::event::{event_loop, receive_event};
 use crate::tui::game::game;
@@ -29,7 +30,8 @@ pub struct State{
 
 pub type Term = Terminal<CrosstermBackend<Stdout>>;
 
-pub fn ui(debug: LevelFilter){
+pub fn ui(host: Option<String>, port: u32, debug: LevelFilter){
+    let url = make_url(host, port);
     let (tx, rx) = mpsc::channel();
     let (sS, rS) = mpsc::channel();
     event_loop(tx.clone());
@@ -64,7 +66,7 @@ pub fn ui(debug: LevelFilter){
 
     loop {
         draw(&mut state, &menu_titles, &mut term);
-        if !receive_event(&rx, &sS, &mut state, &mut term){
+        if !receive_event(&rx, &sS, &mut state, &mut term, &url){
             break;
         }
     }

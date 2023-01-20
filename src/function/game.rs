@@ -6,7 +6,7 @@ use crate::function::round::{get_player, round};
 use crate::types::end::EndOfGame;
 use crate::types::error::RoundErrorReason;
 
-fn make_url(host: Option<String>, port: u32) -> String{
+pub fn make_url(host: Option<String>, port: u32) -> String{
     match host {
         Some(host) => { host }
         None => { "localhost".to_string() }

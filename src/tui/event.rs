@@ -69,7 +69,7 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
     });
 }
 
-pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, String)>, state: &mut State, term: &mut Term) -> bool {
+pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, String)>, state: &mut State, term: &mut Term, url: &String) -> bool {
     let event = match rx.recv() {
         Ok(e) => {
             debug!("Successfully received event");
@@ -102,7 +102,7 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, Str
                 }
                 InputMode::User => match event.code {
                     KeyCode::Enter => {
-                        match connect("127.0.0.1:7878".to_string(), &state.name) {
+                        match connect(url.clone(), &state.name) {
                             Some(val) => {
                                 match sS.send((val, state.name.clone())) {
                                     Ok(_) => {
