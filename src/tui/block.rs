@@ -1,4 +1,5 @@
 use std::io::Stdout;
+use log::{debug, error};
 use tui::backend::CrosstermBackend;
 use tui::Frame;
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -7,6 +8,7 @@ use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, BorderType, Paragraph};
 use crate::function::round::get_player;
 use crate::State;
+use crate::tui::error::UIError;
 
 pub fn basic_block<'a>(title: String) -> Block<'a> {
     Block::default()
@@ -16,7 +18,7 @@ pub fn basic_block<'a>(title: String) -> Block<'a> {
         .border_type(BorderType::Rounded)
 }
 
-pub fn render_status<'a>(state: &State, chunk: Rect, rect: &mut Frame<CrosstermBackend<Stdout>>){
+pub fn render_status<'a>(state: &mut State, chunk: Rect, rect: &mut Frame<CrosstermBackend<Stdout>>){
     let (statut, color) = if state.connected {
         ("Connecté", Color::Blue)
     }else{
@@ -42,8 +44,18 @@ pub fn render_status<'a>(state: &State, chunk: Rect, rect: &mut Frame<CrosstermB
     let (game_res, color_res) = if state.eog.is_none() {
         ("En attente", Color::Gray)
     }else {
-        let top1 = get_player(&board, &state.name, false);
-        if top1.expect("Oui").name.eq(&state.name.clone()){
+        let top1 = match get_player(&board, &state.name, false){
+            Some(player) => {
+                debug!("Successfully retrieve winner");
+                player
+            }
+            None => {
+                error!("Cannot retrieve winner");
+                state.error = Some(UIError::FatalError);
+                return;
+            }
+        };
+        if top1.name.eq(&state.name.clone()){
             ("Victoire", Color::Green)
         }else {
             ("Défaite", Color::Red)

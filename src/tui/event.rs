@@ -4,8 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use crossterm::event;
 use crossterm::event::{Event as CEvent, KeyCode, KeyEvent};
-use log::error;
-use simplelog::debug;
+use log::{debug, error};
 use crate::function::connect::connect;
 use crate::{State, Term};
 use crate::tui::error::UIError;
@@ -41,9 +40,24 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
             }else {
                 Duration::from_secs(0)
             };
-            if event::poll(timeout).expect("poll works") {
-                if let CEvent::Key(key) = event::read().expect("can read events") {
-                    tx.send(Event::Input(key)).expect("can send events");
+            match event::poll(timeout) {
+                Ok(res) => {
+                    if res {
+                        match event::read(){
+                            Ok(CEvent::Key(key)) => {
+                                send(&tx, Event::Input(key));
+                            }
+                            Err(err) => {
+                                error!("Error reading event: {err}");
+                                return;
+                            }
+                            _ => {}
+                        };
+                    }
+                }
+                Err(err) => {
+                    error!("Can't poll event: {err}");
+                    send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
                 }
             }
             if last_tick.elapsed() >= tick_rate {

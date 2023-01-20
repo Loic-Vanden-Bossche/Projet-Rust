@@ -1,7 +1,5 @@
 #![allow(non_snake_case)]
 
-extern crate core;
-
 mod types;
 mod function;
 mod challenges;

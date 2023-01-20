@@ -1,7 +1,8 @@
 use std::{io};
 use std::io::Stdout;
+use std::process::exit;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use log::{error};
+use log::{debug, error, trace};
 use tui::backend::CrosstermBackend;
 use tui::{Terminal};
 use tui::layout::{Constraint, Direction, Layout};
@@ -10,11 +11,26 @@ use crate::tui::block::{make_copright, render_status};
 use crate::tui::menu::{make_tabs, render_active_menu};
 
 pub fn get_term() -> Term{
-    enable_raw_mode().expect("Raw mode");
+    match enable_raw_mode() {
+        Ok(_) => {
+            debug!("Successfully enable raw mode")
+        }
+        Err(err) => {
+            error!("Error enabling raw mode: {err}");
+        }
+    }
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
-    let term = Terminal::new(backend).expect("NIKKKK");
-    return term;
+    match Terminal::new(backend) {
+        Ok(term) => {
+            debug!("Terminal created");
+            term
+        }
+        Err(err) => {
+            error!("Cannot create terminal: {err}");
+            exit(-1);
+        }
+    }
 }
 
 pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
@@ -28,7 +44,7 @@ pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
 }
 
 pub fn draw(state: &mut State, menu_titles: &Vec<&str>, term: &mut Term){
-    term.draw(|rect| {
+    match term.draw(|rect| {
         let size = rect.size();
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -46,7 +62,14 @@ pub fn draw(state: &mut State, menu_titles: &Vec<&str>, term: &mut Term){
         rect.render_widget(make_tabs(&menu_titles, state.active_menu), chunks[0]);
         render_status(state, chunks[1], rect);
         render_active_menu(state, rect, chunks[2]);
-    }).expect("Pannik");
+    }) {
+        Ok(_) => {
+            trace!("Draw Ok");
+        }
+        Err(err) => {
+            error!("Error in drawing: {err}");
+        }
+    };
 }
 
 pub fn clear(term: &mut Terminal<CrosstermBackend<Stdout>>){
