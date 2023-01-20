@@ -69,18 +69,30 @@ fn ui(){
 	let menu_titles = vec!["Intro", "Résumé", "Actuel", "Split", "Quitter"];
 
 	clear(&mut term);
-	let f = File::create("./log").unwrap();
-	match simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f){
-		Ok(_) => {
-			debug!("File logger successfully loaded");
+	match File::create("./log"){
+		Ok(f) => match simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f){
+			Ok(_) => {
+				debug!("File logger successfully loaded");
+			}
+			Err(e) => {
+				println!("Cannot load logger : {e}");
+			}
 		}
 		Err(e) => {
-			println!("Cannot load logger : {e}");
+			println!("Error : Can't open log file\nReason {e}");
 		}
 	}
 	thread::spawn( move ||{
-		let (stream, name): (TcpStream, String) = rS.recv().unwrap();
-		debug!("Stream received");
+		let (stream, name): (TcpStream, String) = match rS.recv(){
+			Ok(val) => {
+				debug!("Successfully received stream and name in threaad [game]");
+				val
+			}
+			Err(err) => {
+				error!("Error receiving stream and name in thread [game]: {err}");
+				return;
+			}
+		};
 		loop {
 			let plb = match start_round(&stream) {
 				Ok(val) => {
@@ -100,7 +112,17 @@ fn ui(){
 					}
 				}
 			};
-			let top1 = get_player(&plb.PublicLeaderBoard, &name, true).unwrap();
+			let top1 = match get_player(&plb.PublicLeaderBoard, &name, true) {
+				Some(player) => {
+					debug!("Retrieve next player");
+					player
+				}
+				None => {
+					error!("Error retrieving next player");
+					send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
+					return;
+				}
+			};
 			loop {
 				let challenge: Challenge = match get_challenge_input(&stream){
 					Ok(val) => {

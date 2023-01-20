@@ -36,9 +36,11 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
     thread::spawn(move || {
         let mut last_tick = Instant::now();
         loop {
-            let timeout = tick_rate
-                .checked_sub(last_tick.elapsed())
-                .unwrap_or_else(|| Duration::from_secs(0));
+            let timeout = if let Some(v) = tick_rate.checked_sub(last_tick.elapsed()){
+                v
+            }else {
+                Duration::from_secs(0)
+            };
             if event::poll(timeout).expect("poll works") {
                 if let CEvent::Key(key) = event::read().expect("can read events") {
                     tx.send(Event::Input(key)).expect("can send events");
@@ -54,7 +56,18 @@ pub fn event_loop(tx: Sender<Event<KeyEvent>>){
 }
 
 pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, String)>, state: &mut State, term: &mut Term) -> bool {
-    match rx.recv().unwrap() {
+    let event = match rx.recv() {
+        Ok(e) => {
+            debug!("Successfully received event");
+            e
+        }
+        Err(err) => {
+            state.error = Some(UIError::FatalError);
+            error!("On event receiving : {err}");
+            return true;
+        }
+    };
+    match event {
         Event::Input(event) => {
             match state.input_mode {
                 InputMode::Normal => match event.code {
