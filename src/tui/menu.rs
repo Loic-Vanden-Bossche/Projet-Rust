@@ -5,8 +5,8 @@ use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{Paragraph, Tabs};
-use crate::State;
 use crate::tui::block::{basic_block};
+use crate::tui::ui::State;
 use crate::types::challenge::{Challenge, ChallengeEnum};
 use crate::types::player::PublicLeaderBoard;
 

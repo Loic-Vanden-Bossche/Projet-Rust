@@ -7,8 +7,8 @@ use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, BorderType, Paragraph};
 use crate::function::round::get_player;
-use crate::State;
 use crate::tui::error::UIError;
+use crate::tui::ui::State;
 
 pub fn basic_block<'a>(title: String) -> Block<'a> {
     Block::default()

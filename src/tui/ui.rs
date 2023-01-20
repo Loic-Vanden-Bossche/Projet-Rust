@@ -1,13 +1,33 @@
 use std::fs::File;
+use std::io::Stdout;
 use std::sync::mpsc;
 use log::{debug, LevelFilter};
 use simplelog::Config;
-use crate::State;
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
+use crate::tui::error::UIError;
 use crate::tui::event::{event_loop, receive_event};
 use crate::tui::game::game;
 use crate::tui::input::InputMode;
 use crate::tui::menu::MenuItem;
 use crate::tui::term::{clear, draw, get_term};
+use crate::types::challenge::Challenge;
+use crate::types::end::EndOfGame;
+use crate::types::player::PublicLeaderBoard;
+
+#[derive(Clone)]
+pub struct State{
+    pub connected: bool,
+    pub name: String,
+    pub input_mode: InputMode,
+    pub active_menu: MenuItem,
+    pub error: Option<UIError>,
+    pub summary: Option<PublicLeaderBoard>,
+    pub eog: Option<EndOfGame>,
+    pub current: Option<Challenge>
+}
+
+pub type Term = Terminal<CrosstermBackend<Stdout>>;
 
 pub fn ui(debug: LevelFilter){
     let (tx, rx) = mpsc::channel();

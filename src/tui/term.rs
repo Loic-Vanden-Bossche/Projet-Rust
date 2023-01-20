@@ -1,14 +1,13 @@
 use std::{io};
-use std::io::Stdout;
 use std::process::exit;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::{debug, error, trace};
 use tui::backend::CrosstermBackend;
 use tui::{Terminal};
 use tui::layout::{Constraint, Direction, Layout};
-use crate::{State, Term};
 use crate::tui::block::{make_copright, render_status};
 use crate::tui::menu::{make_tabs, render_active_menu};
+use crate::tui::ui::{State, Term};
 
 pub fn get_term() -> Term{
     match enable_raw_mode() {
@@ -33,7 +32,7 @@ pub fn get_term() -> Term{
     }
 }
 
-pub fn close_term(term: &mut Terminal<CrosstermBackend<Stdout>>){
+pub fn close_term(term: &mut Term){
     clear(term);
     if let Err(_) = disable_raw_mode() {
         error!("Error disabling raw mode");
@@ -72,7 +71,7 @@ pub fn draw(state: &mut State, menu_titles: &Vec<&str>, term: &mut Term){
     };
 }
 
-pub fn clear(term: &mut Terminal<CrosstermBackend<Stdout>>){
+pub fn clear(term: &mut Term){
     if let Err(_) = term.clear() {
         error!("Error while clearing terminal");
     }
