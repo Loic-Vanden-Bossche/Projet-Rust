@@ -4,6 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use crossterm::event;
 use crossterm::event::{Event as CEvent, KeyCode, KeyEvent};
+use log::error;
 use simplelog::debug;
 use crate::function::connect::connect;
 use crate::{State, Term};
@@ -76,7 +77,14 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, Str
                     KeyCode::Enter => {
                         match connect("127.0.0.1:7878".to_string(), &state.name) {
                             Some(val) => {
-                                sS.send((val, state.name.clone()));
+                                match sS.send((val, state.name.clone())) {
+                                    Ok(_) => {
+                                        debug!("Stream and name send to game thread");
+                                    }
+                                    Err(_) => {
+                                        error!("Unable to share stream and name with thread [game]")
+                                    }
+                                }
                                 state.connected = true;
                                 state.error = None;
                                 state.input_mode = InputMode::Normal;
@@ -123,4 +131,17 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, Str
         }
     };
     return true;
+}
+
+pub fn send<T>(sender: &Sender<T>, data: T) -> bool{
+    match sender.send(data) {
+        Ok(_) => {
+            debug!("Data sent");
+            true
+        }
+        Err(err) => {
+            error!("Error sending data : {err}");
+            false
+        }
+    }
 }

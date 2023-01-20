@@ -16,7 +16,7 @@ use std::thread;
 use ::tui::backend::CrosstermBackend;
 use ::tui::Terminal;
 use log::{info, error, debug, LevelFilter};
-use simplelog::{ColorChoice, Config, SimpleLogger, TerminalMode};
+use simplelog::{ColorChoice, Config, TerminalMode};
 use crate::function::args::parse_args;
 use crate::function::connect::connect;
 use crate::function::round::{get_challenge_input, get_player, respond_challenge, round, start_round};
@@ -24,7 +24,7 @@ use crate::tui::error::UIError;
 use crate::tui::term::{clear, draw, get_term};
 use crate::types::end::EndOfGame;
 use crate::types::error::{ChallengeError, RoundErrorReason, RoundStartErrorEnum};
-use crate::tui::event::{Event, event_loop, GameEvent, receive_event};
+use crate::tui::event::{Event, event_loop, GameEvent, receive_event, send};
 use crate::tui::input::InputMode;
 use crate::tui::menu::{MenuItem};
 use crate::types::challenge::Challenge;
@@ -70,24 +70,31 @@ fn ui(){
 
 	clear(&mut term);
 	let f = File::create("./log").unwrap();
-	simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f);
+	match simplelog::WriteLogger::init(LevelFilter::Debug, Config::default(), f){
+		Ok(_) => {
+			debug!("File logger successfully loaded");
+		}
+		Err(e) => {
+			println!("Cannot load logger : {e}");
+		}
+	}
 	thread::spawn( move ||{
 		let (stream, name): (TcpStream, String) = rS.recv().unwrap();
 		debug!("Stream received");
 		loop {
 			let plb = match start_round(&stream) {
 				Ok(val) => {
-					tx.send(Event::Game(GameEvent::PublicLeaderBoard(val.clone())));
+					send(&tx, Event::Game(GameEvent::PublicLeaderBoard(val.clone())));
 					val
 				}
 				Err(e) => {
 					match e.reason {
 						RoundStartErrorEnum::EndOfGame(eog) => {
-							tx.send(Event::Game(GameEvent::EndOfGame(eog)));
+							send(&tx, Event::Game(GameEvent::EndOfGame(eog)));
 							break;
 						}
 						RoundStartErrorEnum::ReadError => {
-							tx.send(Event::Game(GameEvent::Error(UIError::FatalError)));
+							send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
 							return;
 						}
 					}
@@ -98,18 +105,18 @@ fn ui(){
 				let challenge: Challenge = match get_challenge_input(&stream){
 					Ok(val) => {
 						debug!("Get challenge input");
-						tx.send(Event::Game(GameEvent::ChallengeInput(val.clone())));
+						send(&tx, Event::Game(GameEvent::ChallengeInput(val.clone())));
 						val
 					},
 					Err(e) => match e {
 						ChallengeError::EndOfRound(val) => {
 							debug!("End of round");
-							tx.send(Event::Game(GameEvent::EndOfRound(val)));
+							send(&tx, Event::Game(GameEvent::EndOfRound(val)));
 							break;
 						}
 						ChallengeError::ChallengeInput => {
 							error!("Invalid data receive at start of challenge");
-							tx.send(Event::Game(GameEvent::Error(UIError::FatalError)));
+							send(&tx, Event::Game(GameEvent::Error(UIError::FatalError)));
 							break;
 						}
 					}
