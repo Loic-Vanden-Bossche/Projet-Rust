@@ -132,7 +132,7 @@ pub fn get_player<'a>(plb: &'a Vec<PublicPlayer>, name: &String, filter: bool) -
         }
     };
     for p in plb {
-        if top1.score < p.score && (!filter || p.name.ne(name)) {
+        if !top1.is_active || (p.is_active && top1.score < p.score && (!filter || p.name.ne(name))) {
             top1 = p;
         }
     }

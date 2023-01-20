@@ -62,13 +62,25 @@ pub fn make_menu<'a>(menu_titles: &Vec<&'a str>) -> Vec<Spans<'a>>{
 pub fn make_summary<'a>(plb: &Option<PublicLeaderBoard>) -> Paragraph<'a> {
     let mut data: Vec<Spans> = vec![];
     if let Some(plb) = plb {
-        for p in plb.PublicLeaderBoard.clone() {
-            data.push(Spans::from(vec![Span::raw(p.name), Span::raw(" : "), Span::raw(p.score.to_string())]));
+        let mut sorted = plb.PublicLeaderBoard.clone();
+        sorted.sort_by(|a, b| b.score.cmp(&a.score));
+        for p in sorted {
+            let (name_color, score_color) = if p.is_active {
+                (Color::Green, Color::White)
+            }else {
+                (Color::Red, Color::DarkGray)
+            };
+            data.push(
+                Spans::from(vec![
+                    Span::styled(p.name, Style::default().fg(name_color)),
+                    Span::styled(" : ", Style::default().fg(Color::White)),
+                    Span::styled(p.score.to_string(), Style::default().fg(score_color))
+                ])
+            );
         }
     }
     Paragraph::new(data)
         .alignment(Alignment::Left)
-        .style(Style::default().fg(Color::Green))
         .block(basic_block("Résumé".to_string()))
 }
 
@@ -81,10 +93,8 @@ pub fn make_current(challenge: &Option<Challenge>) -> Paragraph {
                 data.push(Spans::from(vec![Span::raw("Seed : "), Span::raw(val.message.clone())]));
             }
             ChallengeEnum::MonstrousMaze(val) => {
-                for _ in 0..val.grid.lines().count() {
-                    if let Some(l) = val.grid.lines().next() {
-                        data.push(Spans::from(l.clone()));
-                    }
+                for line in val.grid.lines() {
+                    data.push(Spans::from(line.clone()));
                 }
             }
         }
@@ -120,11 +130,11 @@ pub fn render_active_menu(state: &State, rect: &mut Frame<CrosstermBackend<Stdou
 pub fn make_intro<'a>(input: String) -> Paragraph<'a> {
     let home = Paragraph::new(vec![
         Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("Bienvenue")]),
         Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::raw("à la")]),
         Spans::from(vec![Span::raw("")]),
-        Spans::from(vec![Span::styled("patate", Style::default().fg(Color::LightBlue))]),
+        Spans::from(vec![Span::styled("Je suis une patate", Style::default().fg(Color::LightBlue))]),
+        Spans::from(vec![Span::raw("")]),
+        Spans::from(vec![Span::raw("Je génère 1.1 volt d'électricité")]),
         Spans::from(vec![Span::raw("")]),
         Spans::from(vec![Span::raw("Entre ton nom pour te connecter au serveur")]),
         Spans::from(vec![Span::raw("")]),

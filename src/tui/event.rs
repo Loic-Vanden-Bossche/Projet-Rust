@@ -78,6 +78,7 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, Str
                             Some(val) => {
                                 sS.send((val, state.name.clone()));
                                 state.connected = true;
+                                state.error = None;
                                 state.input_mode = InputMode::Normal;
                                 state.active_menu = MenuItem::Summary;
                             },
@@ -101,18 +102,22 @@ pub fn receive_event(rx: &Receiver<Event<KeyEvent>>, sS: &Sender<(TcpStream, Str
         Event::Tick => {},
         Event::Game(ev) => match ev {
             GameEvent::EndOfGame(eog) => {
-                state.eog = Some(eog)
+                state.eog = Some(eog);
+                state.error = None;
             },
             GameEvent::PublicLeaderBoard(plb) => {
-                state.summary = Some(plb)
+                state.summary = Some(plb);
+                state.error = None;
             }
             GameEvent::Error(e) => {
                 state.error = Some(e);
             }
             GameEvent::ChallengeInput(val) => {
                 state.current = Some(val);
+                state.error = None;
             }
             GameEvent::EndOfRound(_) => {
+                state.error = None;
                 debug!("End of round");
             }
         }
