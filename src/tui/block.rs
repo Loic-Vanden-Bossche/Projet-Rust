@@ -61,10 +61,19 @@ pub fn render_status<'a>(state: &mut State, chunk: Rect, rect: &mut Frame<Crosst
             ("Défaite", Color::Red)
         }
     };
-    let (error, color_error, modifier) = if state.error.is_some(){
-        ("Il y a une erreur", Color::Red, Modifier::SLOW_BLINK)
-    }else {
-        ("Rien à signaler", Color::LightGreen, Modifier::empty())
+    let (error, color_error, modifier) = match state.error.as_ref(){
+        Some(error) => {
+            let message = match error {
+                UIError::ConnectError => {
+                    "Erreur lors de la connexion"
+                }
+                UIError::FatalError => {
+                    "Erreur fatale"
+                }
+            };
+            (message, Color::Red, Modifier::SLOW_BLINK)
+        }
+        None => ("Rien à signaler", Color::LightGreen, Modifier::empty())
     };
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
