@@ -20,7 +20,7 @@ pub fn hash_cash(input: MD5HashCashInput) -> MD5HashCashOutput {
 }
 
 fn count0(digest: Digest) -> u32 {
-    let str = format!("{:x}", digest);
+    let str = format!("{:X}", digest);
     let value = match u128::from_str_radix(str.as_str(), 16) {
         Ok(val) => { val }
         Err(_) => { 0 }
