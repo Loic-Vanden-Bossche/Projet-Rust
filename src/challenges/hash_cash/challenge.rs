@@ -19,17 +19,11 @@ pub fn hash_cash(input: MD5HashCashInput) -> MD5HashCashOutput {
     MD5HashCashOutput { seed, hashcode: answer }
 }
 
-fn count0(digest: Digest) -> u8 {
-    let mut tot: u8 = 0;
-    for i in 0..digest.0.len() {
-        let mut tmp = 128;
-        while digest[i] < tmp {
-            tot += 1;
-            tmp /= 2;
-        }
-        if tmp != 1 {
-            break;
-        }
-    }
-    return tot;
+fn count0(digest: Digest) -> u32 {
+    let str = format!("{:x}", digest);
+    let value = match u128::from_str_radix(str.as_str(), 16) {
+        Ok(val) => { val }
+        Err(_) => { 0 }
+    };
+    return value.leading_zeros()
 }
