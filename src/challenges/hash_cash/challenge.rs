@@ -11,9 +11,8 @@ pub fn hash_cash(input: MD5HashCashInput) -> MD5HashCashOutput {
     loop {
         seed = rng.gen::<u64>();
         let digest = md5::compute(format!("{seed:016x}{}", input.message.clone()));
-        println!("{}, {}", count0(digest), input.complexity);
         if count0(digest) >= input.complexity as u8 {
-            answer = format!("{:x}", digest);
+            answer = format!("{:X}", digest);
             break;
         }
     }
